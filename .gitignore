@@ -1,0 +1,43 @@
+
+# --------------------
+# Typical Laravel ignores
+# --------------------
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
+.env*
+!.env.example
+.phpunit.result.cache
+docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+*.log
+.npmrc
+.eslintcache
+
+# --------------------
+# Electron build ignores (using electron-builder)
+# --------------------
+/dist
+/build
+!.gitkeep
+# The `dist` directory is the standard output for built Electron apps, while `build` is
+# often used as an intermediate directory.
+# `!.gitkeep` is a common practice to keep an empty directory tracked.
+
+# --------------------
+# NativePHP ignores
+# --------------------
+/vendor/nativephp
+/resources/js/resources/*
+# NativePHP installs its own `vendor` directory and other resources. You should typically
+# ignore these to allow team members to run `composer install` for their own setup.
+# Exclude the `vendor/nativephp` directory entirely to prevent committing internal NativePHP dependencies.
+
+# --------------------
+# OS-specific and editor files
+# --------------------
+.DS_Store
+.vscode/
