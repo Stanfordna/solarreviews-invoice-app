@@ -1,0 +1,231 @@
+[
+  {
+    "id": "RT3080",
+    "issue_date": "2021-08-18",
+    "due_date": "2021-08-19",
+    "description": "Re-branding",
+    "payment_terms": 1,
+    "client_name": "Jensen Huang",
+    "client_email": "jensenh@mail.com",
+    "status": "paid",
+    "sender_address": {
+      "street": "19 Union Terrace",
+      "city": "London",
+      "postal_code": "E1 3EZ",
+      "country": "United Kingdom"
+    },
+    "client_address": {
+      "street": "106 Kendell Street",
+      "city": "Sharrington",
+      "postal_code": "NR24 5WQ",
+      "country": "United Kingdom"
+    },
+    "line_items": [
+      {
+        "name": "Brand Guidelines",
+        "quantity": 1,
+        "price_unit_cents": 180090,
+        "price_total_cents": 180090
+      }
+    ],
+    "total_cents": 180090
+  },
+  {
+    "id": "XM9141",
+    "issue_date": "2021-08-21",
+    "due_date": "2021-09-20",
+    "description": "Graphic Design",
+    "payment_terms": 30,
+    "client_name": "Alex Grim",
+    "client_email": "alexgrim@mail.com",
+    "status": "pending",
+    "sender_address": {
+      "street": "19 Union Terrace",
+      "city": "London",
+      "postal_code": "E1 3EZ",
+      "country": "United Kingdom"
+    },
+    "client_address": {
+      "street": "84 Church Way",
+      "city": "Bradford",
+      "postal_code": "BD1 9PB",
+      "country": "United Kingdom"
+    },
+    "line_items": [
+      {
+        "name": "Banner Design",
+        "quantity": 1,
+        "price_unit_cents": 15600,
+        "price_total_cents": 15600
+      },
+      {
+        "name": "Email Design",
+        "quantity": 2,
+        "price_unit_cents": 20000,
+        "price_total_cents": 40000
+      }
+    ],
+    "total_cents": 55600
+  },
+  {
+    "id": "RG0314",
+    "issue_date": "2021-09-24",
+    "due_date": "2021-10-01",
+    "description": "Website Redesign",
+    "payment_terms": 7,
+    "client_name": "John Morrison",
+    "client_email": "jm@myco.com",
+    "status": "paid",
+    "sender_address": {
+      "street": "19 Union Terrace",
+      "city": "London",
+      "postal_code": "E1 3EZ",
+      "country": "United Kingdom"
+    },
+    "client_address": {
+      "street": "79 Dover Road",
+      "city": "Westhall",
+      "postal_code": "IP19 3PF",
+      "country": "United Kingdom"
+    },
+    "line_items": [
+      {
+        "name": "Website Redesign",
+        "quantity": 1,
+        "price_unit_cents": 1400233,
+        "price_total_cents": 1400233
+      }
+    ],
+    "total_cents": 1400233
+  },
+  {
+    "id": "RT2080",
+    "issue_date": "2021-10-11",
+    "due_date": "2021-10-12",
+    "description": "Logo Concept",
+    "payment_terms": 1,
+    "client_name": "Alysa Werner",
+    "client_email": "alysa@email.co.uk",
+    "status": "pending",
+    "sender_address": {
+      "street": "19 Union Terrace",
+      "city": "London",
+      "postal_code": "E1 3EZ",
+      "country": "United Kingdom"
+    },
+    "client_address": {
+      "street": "63 Warwick Road",
+      "city": "Carlisle",
+      "postal_code": "CA20 2TG",
+      "country": "United Kingdom"
+    },
+    "line_items": [
+      {
+        "name": "Logo Sketches",
+        "quantity": 1,
+        "price_unit_cents": 10204,
+        "price_total_cents": 10204
+      }
+    ],
+    "total_cents": 10204
+  },
+  {
+    "id": "AA1449",
+    "issue_date": "2021-10-7",
+    "due_date": "2021-10-14",
+    "description": "Re-branding",
+    "payment_terms": 7,
+    "client_name": "Mellisa Clarke",
+    "client_email": "mellisa.clarke@example.com",
+    "status": "pending",
+    "sender_address": {
+      "street": "19 Union Terrace",
+      "city": "London",
+      "postal_code": "E1 3EZ",
+      "country": "United Kingdom"
+    },
+    "client_address": {
+      "street": "46 Abbey Row",
+      "city": "Cambridge",
+      "postal_code": "CB5 6EG",
+      "country": "United Kingdom"
+    },
+    "line_items": [
+      {
+        "name": "New Logo",
+        "quantity": 1,
+        "price_unit_cents": 153233,
+        "price_total_cents": 153233
+      },
+      {
+        "name": "Brand Guidelines",
+        "quantity": 1,
+        "price_unit_cents": 250000,
+        "price_total_cents": 250000
+      }
+    ],
+    "total_cents": 403233
+  },
+  {
+    "id": "TY9141",
+    "issue_date": "2021-10-01",
+    "due_date": "2021-10-31",
+    "description": "Landing Page Design",
+    "payment_terms": 30,
+    "client_name": "Thomas Wayne",
+    "client_email": "thomas@dc.com",
+    "status": "pending",
+    "sender_address": {
+      "street": "19 Union Terrace",
+      "city": "London",
+      "postal_code": "E1 3EZ",
+      "country": "United Kingdom"
+    },
+    "client_address": {
+      "street": "3964 Queens Lane",
+      "city": "Gotham",
+      "postal_code": "60457",
+      "country": "United States of America"
+    },
+    "line_items": [
+      {
+        "name": "Web Design",
+        "quantity": 1,
+        "price_unit_cents": 615591,
+        "price_total_cents": 615591
+      }
+    ],
+    "total_cents": 615591
+  },
+  {
+    "id": "FV2353",
+    "issue_date": "2021-11-05",
+    "due_date": "2021-11-12",
+    "description": "Logo Re-design",
+    "payment_terms": 7,
+    "client_name": "Anita Wainwright",
+    "client_email": "",
+    "status": "draft",
+    "sender_address": {
+      "street": "19 Union Terrace",
+      "city": "London",
+      "postal_code": "E1 3EZ",
+      "country": "United Kingdom"
+    },
+    "client_address": {
+      "street": "",
+      "city": "",
+      "postal_code": "",
+      "country": ""
+    },
+    "line_items": [
+      {
+        "name": "Logo Re-design",
+        "quantity": 1,
+        "price_unit_cents": 310204,
+        "price_total_cents": 310204
+      }
+    ],
+    "total_cents": 310204
+  }
+]
