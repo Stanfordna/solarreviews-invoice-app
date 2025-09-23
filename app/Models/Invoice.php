@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -21,7 +22,7 @@ class Invoice extends Model
      * The "type" of the primary key ID.
      * @var string
      */
-    protected $keyType = 'string'; 
+    protected $keyType = 'string';
 
     /**
      * The "type" of the primary key ID.
@@ -32,12 +33,41 @@ class Invoice extends Model
         static::creating(function ($invoice) {
             $invoice->id = self::generateCustomId();
         });
+
+        /**
+         * When an invoice is deleted, all clients and addresses that do not have an invoice should be deleted
+         */
+        static::deleting(function ($invoice) {
+            $client = $invoice->client();
+            // Check if the client has other invoices
+            $clientHasOtherInvoices = $client->invoices()
+                ->where('id', '!=', $invoice->id)
+                ->exists();
+
+            // TODO: May need to set client_id to null before deletion in object or in db, or change behavior of client model onDelete
+            if (!$clientHasOtherInvoices) {
+                $client->delete();
+            }
+
+            $invoice->clientAddress()->merge($invoice->senderAddress())
+                ->each(function ($address) use ($invoice) {
+                    $addressInOtherInvoices = $address->invoices()
+                        ->where('id', '!=', $invoice->id)
+                        ->exists();
+
+                    // TODO: May need to set sender/client_address_ids to null before deletion in object or in db, or change behavior of client model onDelete
+                    if (!$addressInOtherInvoices) {
+                        $address->delete();
+                    }
+                }
+            );
+        });
     }
 
     /**
      * Generate a custom unique ID for the invoice.
-     * TODO: this implementation will be problematic as more than 
-     * half of all possible IDs are taken. Future implementation could 
+     * TODO: this implementation will be problematic as more than
+     * half of all possible IDs are taken. Future implementation could
      * use a static set of all possible remaining IDs or a prefix tree.
      * @return string
      */
@@ -52,5 +82,29 @@ class Invoice extends Model
         } while (self::where('product_id', $id)->exists());
 
         return $id;
+    }
+
+    /**
+     * Get the client that owns the invoice.
+     */
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    /**
+     * Get the client address for the invoice.
+     */
+    public function clientAddress(): BelongsTo
+    {
+        return $this->belongsTo(Address::class, 'client_address_id');
+    }
+
+    /**
+     * Get the sender address for the invoice.
+     */
+    public function senderAddress(): BelongsTo
+    {
+        return $this->belongsTo(Address::class, 'sender_address_id');
     }
 }
