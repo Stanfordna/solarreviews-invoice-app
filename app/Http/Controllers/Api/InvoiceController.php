@@ -13,7 +13,8 @@ class InvoiceController extends Controller
      */
     public function index()
     {
-        return response()->json(Invoice::all());
+        $invoices = Invoice::all();
+        return response()->json($invoices);
     }
 
     /**
