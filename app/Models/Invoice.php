@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -71,7 +72,7 @@ class Invoice extends Model
      * use a static set of all possible remaining IDs or a prefix tree.
      * @return string
      */
-    private static function generateCustomId()
+    private static function generateCustomId() : string
     {
         do {
             // Generate the 2 random uppercase characters
@@ -79,7 +80,7 @@ class Invoice extends Model
             // Generate 4 random digits
             $digits = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
             $id = $chars . $digits;
-        } while (self::where('product_id', $id)->exists());
+        } while (self::where('id', $id)->exists());
 
         return $id;
     }
@@ -106,5 +107,13 @@ class Invoice extends Model
     public function senderAddress(): BelongsTo
     {
         return $this->belongsTo(Address::class, 'sender_address_id');
+    }
+
+    /**
+     * Get the line items for the invoice.
+     */
+    public function lineItems(): HasMany
+    {
+        return $this->hasMany(LineItem::class, 'invoice_id');
     }
 }
