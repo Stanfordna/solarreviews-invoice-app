@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 
 class Address extends Model
 {
@@ -16,12 +15,12 @@ class Address extends Model
      * We must define the relationship between sender/client addresses and Invoices separately
      * I think this is the most understandable way to get all the invoices that contain an address
      */
-    public function senderInvoices() : HasOneOrMany
+    public function senderInvoices() : HasMany
     {
         return $this->hasMany(Invoice::class, 'hometeam_id');
     }
 
-    public function clientInvoices() : HasOneOrMany
+    public function clientInvoices() : HasMany
     {
         return $this->hasMany(Invoice::class, 'guestteam_id');
     }

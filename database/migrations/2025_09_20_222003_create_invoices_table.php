@@ -17,13 +17,13 @@ return new class extends Migration
             $table->date('due_date');
             $table->string('description')->nullable();
             $table->unsignedSmallInteger('payment_terms')->default(1);
-            $table->foreignId('client_id')->constrained('clients') // TODO: might need to add set null behavior in onDelete for all foreignIDs
-                  ->onDelete('restrict'); // throw an error if invoices still contain address on which deletion is attempted
+            $table->foreignId('client_id')->constrained('clients')
+                  ->onDelete('restrict'); // throw an error if you try to delete a client that has/owns an invoice
             $table->string('status')->default('draft'); // draft, pending, paid
             $table->foreignId('sender_address_id')->constrained('addresses')
-                  ->onDelete('restrict'); // throw an error if invoices still contain address on which deletion is attempted
+                  ->onDelete('restrict'); // throw an error if you try to delete an address that is in (has, owns) an invoice
             $table->foreignId('client_address_id')->constrained('addresses')
-                  ->onDelete('restrict'); // throw an error if invoices still contain address on which deletion is attempted
+                  ->onDelete('restrict');// throw an error if you try to delete an address that is in (has, owns) an invoice
             $table->unsignedInteger('total_cents'); // represent price in whole cents
             $table->timestamps();
         });

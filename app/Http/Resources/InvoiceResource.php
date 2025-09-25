@@ -19,20 +19,20 @@ class InvoiceResource extends JsonResource
             'due_date' => $this->due_date,
             'description' => $this->description,
             'payment_terms' => $this->payment_terms,
-            'client_name' => $this->client?->full_name,
-            'client_email' => $this->client?->email,
+            'client_name' => $this->client->full_name,
+            'client_email' => $this->client->email,
             'status' => $this->status,
             'sender_address' => [
-                'street' => $this->senderAddress?->street,
-                'city' => $this->senderAddress?->city,
-                'postal_code' => $this->senderAddress?->postal_code,
-                'country' => $this->senderAddress?->country
+                'street' => $this->senderAddress->street,
+                'city' => $this->senderAddress->city,
+                'postal_code' => $this->senderAddress->postal_code,
+                'country' => $this->senderAddress->country
             ],
             'client_address' => [
-                'street' => $this->clientAddress?->street,
-                'city' => $this->clientAddress?->city,
-                'postal_code' => $this->clientAddress?->postal_code,
-                'country' => $this->clientAddress?->country
+                'street' => $this->clientAddress->street,
+                'city' => $this->clientAddress->city,
+                'postal_code' => $this->clientAddress->postal_code,
+                'country' => $this->clientAddress->country
             ],
             'line_items' => LineItemResource::collection($this->lineItems),
             'total_cents' => $this->total_cents,

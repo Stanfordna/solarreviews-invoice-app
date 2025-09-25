@@ -45,7 +45,6 @@ class Invoice extends Model
                 ->where('id', '!=', $invoice->id)
                 ->exists();
 
-            // TODO: May need to set client_id to null before deletion in object or in db, or change behavior of client model onDelete
             if (!$clientHasOtherInvoices) {
                 $client->delete();
             }
