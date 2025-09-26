@@ -76,7 +76,7 @@ class Invoice extends Model
      * use a static set of all possible remaining IDs or a prefix tree.
      * @return string
      */
-    private static function generateCustomId() : string
+    private static function generateCustomId(): string
     {
         do {
             // Generate the 2 random uppercase characters

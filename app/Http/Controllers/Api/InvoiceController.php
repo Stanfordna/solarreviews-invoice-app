@@ -34,25 +34,45 @@ class InvoiceController extends Controller
         // if saving a new record with status=pending, attempt to find a client/addresses and keep id handy.
         // for each: if not found, create record and keep ids handy
         // create invoice with ids
+        // include id in response
 
-        // 1. Validate the incoming request data
-        $validatedData = $request->validate([
-            'title' => 'required|max:255',
-            'content' => 'required',
-        ]);
 
-        // 2. Create a new Post instance
-        $post = new Invoice();
-        $post->title = $validatedData['title'];
-        $post->content = $validatedData['content'];
-        // You might also set a user_id here if posts belong to users
-        // $post->user_id = auth()->id(); 
+        // Return the invoice ID in the response
+        return response()->json([
+            'message' => 'Invoice created successfully',
+            'invoice_id' => "AA0000",
+            // 'invoice_id' => $invoice->id,
+        ], 201); // 201 Created status code
+        // // Create minimal related models
+        // $client = Client::create(['full_name' => 'Ricky Bobby', 'email' => 'el.diablo.loco@gmail.com']);
+        // $senderAddress = Address::create(['street' => '930 Acoma Street Unit 316', 'city' => 'Denver', 'postal_code' => '80204', 'country' => 'United States of America']);
+        // $clientAddress = Address::create(['street' => '17240 Connor Quay Ct', 'city' => 'Cornelius', 'postal_code' => '28031', 'country' => 'United States of America']);
 
-        // 3. Save the Post to the database
-        $post->save();
+        // // Create first invoice
+        // $invoice1 = Invoice::create([
+        //     'issue_date' => now()->toDateString(),
+        //     'due_date' => now()->addDays(7)->toDateString(),
+        //     'client_id' => $client->id,
+        //     'sender_address_id' => $senderAddress->id,
+        //     'client_address_id' => $clientAddress->id,
+        //     'total_cents' => 1000,
 
-        // 4. Redirect the user or return a response
-        return redirect()->route('posts.show', $post->id)->with('success', 'Post created successfully!');
+        
+        // $this->assertMatchesRegularExpression('/^[A-Z]{2}\d{4}$/', $invoice2->id);
+        // $this->assertNotEquals($invoice1->id, $invoice2->id, 'Expected two generated invoice ids to be unique');
+
+        // // 2. Create a new Post instance
+        // $post = new Invoice();
+        // $post->title = $validatedData['title'];
+        // $post->content = $validatedData['content'];
+        // // You might also set a user_id here if posts belong to users
+        // // $post->user_id = auth()->id(); 
+
+        // // 3. Save the Post to the database
+        // $post->save();
+
+        // // 4. Redirect the user or return a response
+        // return redirect()->route('posts.show', $post->id)->with('success', 'Post created successfully!');
     }
 
     /**

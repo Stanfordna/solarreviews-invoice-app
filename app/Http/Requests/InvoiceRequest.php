@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class InvoiceRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        $reqIfPending = '|required_if:status,pending';
+
+         // POST generates a new id in the controller, PUT/PATCH already have ID
+        if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
+            $rules = ['id' => 'regex:/^[A-Z]{2}[0-9]{4}$/|required_if:status,pending,paid'];
+        }
+        
+        
+        $rules = array_merge($rules, [
+            'issue_date' => 'date|date_format:Y-m-d' . $reqIfPending,
+            'description' => 'string|max:2000' . $reqIfPending,
+            'payment_terms' => 'integer|min:1|max:36525' . $reqIfPending,
+            'client_name' => 'string|max:100' . $reqIfPending,
+            'client_email' => 'email|max:100' . $reqIfPending,
+            'status' => 'required|string|in:draft,pending,paid',
+            'sender_address' => 'array' . $reqIfPending,
+            'sender_address.street' => 'string|max:100' . $reqIfPending,
+            'sender_address.city' => 'string|max:100' . $reqIfPending,
+            'sender_address.postal_code' => 'string|max:100' . $reqIfPending,
+            'sender_address.country' => 'string|max:100' . $reqIfPending,
+            'client_address' => 'array' . $reqIfPending,
+            'client_address.street' => 'string|max:100' . $reqIfPending,
+            'client_address.city' => 'string|max:100' . $reqIfPending,
+            'client_address.postal_code' => 'string|max:100' . $reqIfPending,
+            'client_address.country' => 'string|max:100' . $reqIfPending,
+            'line_items' => 'array' . $reqIfPending,
+            'line_items.*.name' => 'string|max:100' . $reqIfPending,
+            'line_items.*.quantity' => 'integer' . $reqIfPending,
+            'line_items.*.price_unit_cents' => 'integer' . $reqIfPending,
+            'line_items.*.price_total_cents' => 'integer' . $reqIfPending
+        ]);
+
+        return $rules;
+    }
+}

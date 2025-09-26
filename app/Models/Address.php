@@ -16,12 +16,12 @@ class Address extends Model
      * We must define the relationship between sender/client addresses and Invoices separately
      * I think this is the most understandable way to get all the invoices that contain an address
      */
-    public function senderInvoices() : HasMany
+    public function senderInvoices(): HasMany
     {
         return $this->hasMany(Invoice::class, 'sender_address_id');
     }
 
-    public function clientInvoices() : HasMany
+    public function clientInvoices(): HasMany
     {
         return $this->hasMany(Invoice::class, 'client_address_id');
     }
@@ -32,12 +32,13 @@ class Address extends Model
      * Importantly, this is no longer an Eloquent Relation object,
      * but a Collection, so you can't use the ORM to chain database
      * queries off the returned list. If that is needed use 
-     * senderInvoices() and clientInvoices() individually.
+     * senderInvoices() and clientInvoices() individually, as 
+     * in the deleting event of Invoices.php.
      * Certain libraries can create a HasMany relationship off a
      * composite foreign key ['sender_address_id', 'client_address_id']
      * but it's overkill here to install another library
      */
-    public function invoices() : Collection
+    public function invoices(): Collection
     {
         return $this->senderInvoices->merge($this->clientInvoices);
     }
