@@ -39,8 +39,8 @@ class Invoice extends Model
          * When an invoice is deleted, all clients and addresses that do not have an invoice should be deleted
          */
         static::deleting(function ($invoice) {
-            $client = $invoice->client();
-            // Check if the client has other invoices
+
+            $client = $invoice->client;
             $clientHasOtherInvoices = $client->invoices()
                 ->where('id', '!=', $invoice->id)
                 ->exists();
@@ -49,18 +49,23 @@ class Invoice extends Model
                 $client->delete();
             }
 
-            $invoice->clientAddress()->merge($invoice->senderAddress())
-                ->each(function ($address) use ($invoice) {
-                    $addressInOtherInvoices = $address->invoices()
-                        ->where('id', '!=', $invoice->id)
-                        ->exists();
+            $clientAddress = $invoice->clientAddress;
+            $addressInOtherInvoices = $clientAddress->clientInvoices()
+                ->where('id', '!=', $invoice->id)
+                ->exists();
 
-                    // TODO: May need to set sender/client_address_ids to null before deletion in object or in db, or change behavior of client model onDelete
-                    if (!$addressInOtherInvoices) {
-                        $address->delete();
-                    }
-                }
-            );
+            if (!$addressInOtherInvoices) {
+                $clientAddress->delete();
+            }
+
+            $senderAddress = $invoice->senderAddress;
+            $addressInOtherInvoices = $senderAddress->senderInvoices()
+                ->where('id', '!=', $invoice->id)
+                ->exists();
+
+            if (!$addressInOtherInvoices) {
+                $senderAddress->delete();
+            }
         });
     }
 

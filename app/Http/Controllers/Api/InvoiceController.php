@@ -92,7 +92,7 @@ class InvoiceController extends Controller
     public function destroy(Invoice $invoice)
     {
         // Invoice's "deleting" event will delete clients and addresses when aren't in any invoices.
-        $invoice->delete();
-        return redirect()->route('/invoices')->with('success', 'Invoice {$invoice->id} deleted successfully!');
+        $invoice->delete(); // 204 = no data
+        return response()->noContent();
     }
 }

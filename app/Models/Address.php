@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Address extends Model
 {
@@ -17,18 +18,26 @@ class Address extends Model
      */
     public function senderInvoices() : HasMany
     {
-        return $this->hasMany(Invoice::class, 'hometeam_id');
+        return $this->hasMany(Invoice::class, 'sender_address_id');
     }
 
     public function clientInvoices() : HasMany
     {
-        return $this->hasMany(Invoice::class, 'guestteam_id');
+        return $this->hasMany(Invoice::class, 'client_address_id');
     }
 
     /**
-     * Merge the two lists and return the resulting list
+     * Merge the two lists and return the resulting list.
+     * 
+     * Importantly, this is no longer an Eloquent Relation object,
+     * but a Collection, so you can't use the ORM to chain database
+     * queries off the returned list. If that is needed use 
+     * senderInvoices() and clientInvoices() individually.
+     * Certain libraries can create a HasMany relationship off a
+     * composite foreign key ['sender_address_id', 'client_address_id']
+     * but it's overkill here to install another library
      */
-    public function invoices() : HasMany
+    public function invoices() : Collection
     {
         return $this->senderInvoices->merge($this->clientInvoices);
     }

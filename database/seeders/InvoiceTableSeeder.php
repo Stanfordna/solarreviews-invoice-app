@@ -19,27 +19,21 @@ class InvoiceTableSeeder extends Seeder
         $data = json_decode($json);
 
         foreach ($data as $invoice) {
-            $client_id = Client::where('full_name', $invoice->client_name)
+            $client = 
+            Client::where('full_name', $invoice->client_name)
                 ->where('email', $invoice->client_email)->first();
-            if ( is_null($client_id)) {
-                echo "FUCK!!";
-                dd($invoice);
-            }
-            $client_id = $client_id->id;
-            echo "CLIENT ID\n" . $client_id;
 
-            $_sender_address = $invoice->sender_address;
-            $_client_address = $invoice->client_address;
+            $sender_address_id =
+            Address::where('street', $invoice->sender_address->street)
+                ->where('city', $invoice->sender_address->city)
+                ->where('postal_code', $invoice->sender_address->postal_code)
+                ->where('country', $invoice->sender_address->country)->first()->id;
 
-            $sender_address_id = Address::where('street', $_sender_address->street)
-                ->where('city', $_sender_address->city)
-                ->where('postal_code', $_sender_address->postal_code)
-                ->where('country', $_sender_address->country)->first()->id;
-
-            $client_address_id = Address::where('street', $_client_address->street)
-                ->where('city', $_client_address->city)
-                ->where('postal_code', $_client_address->postal_code)
-                ->where('country', $_client_address->country)->first()->id;
+            $client_address_id =
+            Address::where('street', $invoice->client_address->street)
+                ->where('city', $invoice->client_address->city)
+                ->where('postal_code', $invoice->client_address->postal_code)
+                ->where('country', $invoice->client_address->country)->first()->id;
 
             Invoice::create([
                 'id' => $invoice->id,
@@ -47,7 +41,7 @@ class InvoiceTableSeeder extends Seeder
                 'due_date' => $invoice->due_date,
                 'description' => $invoice->description,
                 'payment_terms' => $invoice->payment_terms,
-                'client_id' => $client_id,
+                'client_id' => $client->id,
                 'status' => $invoice->status,
                 'sender_address_id' => $sender_address_id,
                 'client_address_id' => $client_address_id,
