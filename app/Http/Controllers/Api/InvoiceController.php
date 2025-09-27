@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\InvoicesResourceCollection;
 use App\Http\Resources\InvoiceResource;
+use App\Models\Client;
+use App\Models\Address;
 use App\Models\Invoice;
-use Illuminate\Http\Request;
+use App\Http\Requests\InvoiceRequest;
 
 class InvoiceController extends Controller
 {
@@ -25,59 +27,86 @@ class InvoiceController extends Controller
 
     /**
      * Store a newly created resource in storage.
-     * "Add New Invoice" plus any save should hit this endpoint.
+     * "Add New Invoice" plus any save - draft or pending - should hit this endpoint.
      */
-    public function store(Request $request)
+    public function store(InvoiceRequest $request)
     {
-        // if saving a new record with status=draft, create new client, two new addresses, and invoice
+        $data = $request->all();
 
-        // if saving a new record with status=pending, attempt to find a client/addresses and keep id handy.
-        // for each: if not found, create record and keep ids handy
-        // create invoice with ids
-        // include id in response
+        // drafts will always produce new client/address records, even if they are temporary duplicates
+        if ($data['status'] == 'pending') { 
+            // for pending, attempt to find preexisting client/addresses to reference in new invoice.
+            $client = Client::where('full_name', $data['client_name'])
+                ->where('email', $data['client_email'])
+                ->first();
+                
+            $senderAddress = Address::where('street', $data['client_address']['street'])
+                ->where('city', $data['client_address']['city'])
+                ->where('postal_code', $data['client_address']['postal_code'])
+                ->where('country', $data['client_address']['country'])
+                ->first();
 
+            $clientAddress = Address::where('street', $data['client_address']['street'])
+                ->where('city', $data['client_address']['city'])
+                ->where('postal_code', $data['client_address']['postal_code'])
+                ->where('country', $data['client_address']['country'])
+                ->first();
+        }
+
+        // isSet returns FALSE if $variable has not been assigned or if it is NULL.
+        // create records for client/address if invoice is a draft or pending invoice references new clinet/addresses
+        if (!isset($client)) {
+            $client = Client::create([
+                'full_name' => $data['client_name'],
+                'email' => $data['client_email']
+            ]);
+        }
+        if (!isset($senderAddress)) {
+            $senderAddress = Address::create([
+                'street' => $data['sender_address']['street'],
+                'city' => $data['sender_address']['city'],
+                'postal_code' => $data['sender_address']['postal_code'],
+                'country' => $data['sender_address']['country']
+            ]);
+        }
+        if (!isset($clientAddress)) {
+            $clientAddress = Address::create([
+                'street' => $data['client_address']['street'],
+                'city' => $data['client_address']['city'],
+                'postal_code' => $data['client_address']['postal_code'],
+                'country' => $data['client_address']['country']
+            ]);
+        }
+
+        $invoiceTotal = 100;
+        // TODO make line item records
+        //  TODO calculate total
+
+        // calculate due date from payment terms
+        $dueDate = date('Y-m-d', strtotime("{$data['issue_date']} +{$data['payment_terms']} days"));
+
+        $newInvoice = Invoice::create([
+            'issue_date' => $data['issue_date'],
+            'due_date' => $dueDate,
+            'description' => $data['description'],
+            'payment_terms' => $data['payment_terms'],
+            'client_id' => $client->id,
+            'status' => $data['status'],
+            'sender_address_id' => $senderAddress->id,
+            'client_address_id' => $clientAddress->id,
+            'total_cents' => $invoiceTotal
+        ]);
 
         // Return the invoice ID in the response
         return response()->json([
             'message' => 'Invoice created successfully',
-            'invoice_id' => "AA0000",
-            // 'invoice_id' => $invoice->id,
+            'invoice_id' => $newInvoice->id,
         ], 201); // 201 Created status code
-        // // Create minimal related models
-        // $client = Client::create(['full_name' => 'Ricky Bobby', 'email' => 'el.diablo.loco@gmail.com']);
-        // $senderAddress = Address::create(['street' => '930 Acoma Street Unit 316', 'city' => 'Denver', 'postal_code' => '80204', 'country' => 'United States of America']);
-        // $clientAddress = Address::create(['street' => '17240 Connor Quay Ct', 'city' => 'Cornelius', 'postal_code' => '28031', 'country' => 'United States of America']);
-
-        // // Create first invoice
-        // $invoice1 = Invoice::create([
-        //     'issue_date' => now()->toDateString(),
-        //     'due_date' => now()->addDays(7)->toDateString(),
-        //     'client_id' => $client->id,
-        //     'sender_address_id' => $senderAddress->id,
-        //     'client_address_id' => $clientAddress->id,
-        //     'total_cents' => 1000,
-
-        
-        // $this->assertMatchesRegularExpression('/^[A-Z]{2}\d{4}$/', $invoice2->id);
-        // $this->assertNotEquals($invoice1->id, $invoice2->id, 'Expected two generated invoice ids to be unique');
-
-        // // 2. Create a new Post instance
-        // $post = new Invoice();
-        // $post->title = $validatedData['title'];
-        // $post->content = $validatedData['content'];
-        // // You might also set a user_id here if posts belong to users
-        // // $post->user_id = auth()->id(); 
-
-        // // 3. Save the Post to the database
-        // $post->save();
-
-        // // 4. Redirect the user or return a response
-        // return redirect()->route('posts.show', $post->id)->with('success', 'Post created successfully!');
     }
 
     /**
      * Display the specified resource.
-     * Selecting an invoince should hit this endpoint.
+     * Selecting an invoice should hit this endpoint.
      */
     public function show(Invoice $invoice)
     {
@@ -91,7 +120,7 @@ class InvoiceController extends Controller
      * Update the specified resource in storage.
      * "Edit" button plus any save should hit this endpoint.
      */
-    public function update(Request $request, Invoice $invoice)
+    public function update(InvoiceRequest $request, Invoice $invoice)
     {
         // if updating a draft, overwrite everything and existing client and addresses
 
@@ -101,7 +130,7 @@ class InvoiceController extends Controller
         //     else update current client and/or address records
         // save invoice to db
         // if singleton_id != current_id
-        // if old client id has no invoices, delete. Same for addresses. 
+        // if old client id has no invoices, delete. Same for addresses.
     }
 
     /**

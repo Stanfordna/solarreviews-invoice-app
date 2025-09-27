@@ -71,16 +71,18 @@ class Invoice extends Model
 
     /**
      * Generate a custom unique ID for the invoice.
+     * 
      * TODO: this implementation will be problematic as more than
      * half of all possible IDs are taken. Future implementation could
-     * use a static set of all possible remaining IDs or a prefix tree.
+     * use a static set of all possible remaining IDs or a prefix tree,
+     * or anything that avoids collisions.
      * @return string
      */
     private static function generateCustomId(): string
     {
         do {
             // Generate the 2 random uppercase characters
-            $chars = Str::upper(Str::random(2));
+            $chars = chr(mt_rand(65, 90)) . chr(mt_rand(65, 90));
             // Generate 4 random digits
             $digits = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
             $id = $chars . $digits;

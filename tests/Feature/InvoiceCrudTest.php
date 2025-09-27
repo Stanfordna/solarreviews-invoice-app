@@ -21,8 +21,12 @@ class InvoiceCrudTest extends TestCase
         $this->totalInvoiceRecords = Invoice::count();
     }
 
-
-    protected function createInvoicesRequestData(string $id = "", string $status = "draft"): array {
+    /**
+     * Generate an associative array for the "data" section of a request for POST/PUT/PATCH operations.
+     * Function call can specify to create a well-formed PUT/PATCH request, as well as status.
+     * For tests of behaviors when missing data, test methods should manually set values to "" or null.
+     */
+    protected function createInvoicesRequestData(string $id = '', string $status = 'draft'): array {
         $data = [
             'id' => $id,
             'issue_date' => date('Y-m-d'),
@@ -67,9 +71,10 @@ class InvoiceCrudTest extends TestCase
         return $data;
     }
 
-    /**
-     * Test: index
-     *
+
+    /*************************************************************************************
+     *************** Test: GET /invoices (InvoiceController::index()) ********************   TODO: Make sure this is finished
+     *************************************************************************************
      * Purpose:
      * - Verify the /api/invoices endpoint returns a collection of invoices
      *   and includes expected top-level meta (count, api_version) when using the
@@ -82,6 +87,7 @@ class InvoiceCrudTest extends TestCase
      * - JSON meta contains 'count' equal to the expected count of invoices.
      * - If no invoices exist expect empty data array and meta count 0
      */
+
     public function test_invoices_index_returns_expected_json_structure_and_code_200(): void {
         $response = $this->get(route('invoices.index'));
         $response
@@ -123,7 +129,7 @@ class InvoiceCrudTest extends TestCase
             ]);
     }
 
-    // uses $totalInvoiceRecords from setUp()
+    // uses protected int $totalInvoiceRecords assigned in setUp()
     public function test_invoices_index_returns_appropriate_number_of_invoices_with_count_in_metadata(): void {
         $response = $this->get(route('invoices.index'));
         $response
@@ -136,7 +142,7 @@ class InvoiceCrudTest extends TestCase
             ]);
     }
 
-    public function test_does_invoices_index_break_if_there_are_no_invoices(): void {
+    public function test_invoices_index_behaves_even_if_there_are_no_invoices(): void {
         // empty table to test edge case of empty database
         Invoice::truncate();
         $response = $this->get(route('invoices.index'));
@@ -150,40 +156,45 @@ class InvoiceCrudTest extends TestCase
             ]);
     }
 
-    /**
-     * Test: POST /invoices (InvoiceController::store())
-     *
-     * Purpose: TODO: clean this excessive mess up
+
+    /*************************************************************************************
+     ******************** Test: POST /invoices (InvoiceController::store()) **************
+     *************************************************************************************
+     * Purpose:
      * - Verify creating an invoice via the API persists a new invoice and related
      *   objects follow the expected behavior (client/addresses created or attached).
      *
-     * Minimal setup:
-     * - Prepare valid payload that matches your controller/store validation rules.
-     *   Include required fields (issue_date, due_date, client details, sender & client addresses,
-     *   line_items, total_cents, status/payment_terms as appropriate).
-     *
      * Assertions:
-     * - Appropriate HTTP status (201 Created or 200 depending on controller)
+     * - Appropriate HTTP status (201 Created)
      * - Database contains the created invoice row with expected values
      * - Related client/address rows exist (if controller creates them)
      * - Response JSON contains invoice id and matches InvoiceResource shape
+     * - A well-formed id is created for the invoice (2 Uppercase Letters and 4 Numbers)
      *
      * Edge cases:
      * - Missing required fields -> expect validation error (422)
      * - Creating with status=draft vs status=pending -> different creation paths (new vs existing client)
      */
-    public function test_post_stores_new_invoice_with_a_well_formed_id()
-    {
+    public function test_post_stores_new_draft_invoice_with_a_well_formed_id_and_code_201(): void {
         $response = $this->post(route('invoices.store', $this->createInvoicesRequestData()));
-        $responseData = $response->decodeResponseJson();
         $response->assertStatus(201);
-        $this->assertMatchesRegularExpression('/^[A-Z]{2}[0-9]{4}$/', $responseData["invoice_id"]);
-
+        $responseData = $response->json();
+        $newRecordId = $responseData["invoice_id"];
+        $this->assertMatchesRegularExpression('/^[A-Z]{2}[0-9]{4}$/', $newRecordId);
+        $this->assertDatabaseHas('invoices', ['id' => $newRecordId]);
     }
 
-    /**
-     * Test: GET /invoices/{id} (InvoiceController::show()) TODO: add this to other descriptions
-     *
+    public function test_post_rejects_new_pending_invoice_when_fields_are_missing(): void {
+        $pendingInvoiceData = $this->createInvoicesRequestData(status: 'pending');
+        $pendingInvoiceData["description"] = "";
+        $response = $this->post(route('invoices.store', $pendingInvoiceData));
+        $response->assertStatus(422);
+    }
+
+
+    /*************************************************************************************
+     *********** Test: GET /invoices/{id} (InvoiceController::show()) ********************  TODO: Make sure this is finished
+     *************************************************************************************
      * Purpose:
      * - Verify retrieving a single invoice returns the invoice formatted by InvoiceResource.
      * 
@@ -208,9 +219,9 @@ class InvoiceCrudTest extends TestCase
         $response->assertStatus(404);
     }
 
-    /**
-     * Test: update
-     *
+    /*************************************************************************************
+     ******** Test: PUT/PATCH /invoices/{id} (InvoiceController::update()) ***************    TODO: Make sure this is finished
+     *************************************************************************************
      * Purpose:
      * - Verify updating an invoice changes persisted fields and handles related records correctly.
      *
@@ -230,9 +241,9 @@ class InvoiceCrudTest extends TestCase
      */
 
 
-    /**
-     * Tests: destroy
-     *
+    /*************************************************************************************
+     ******** Test: DELETE /invoices/{id} (InvoiceController::destroy()) *****************
+     *************************************************************************************
      * Purpose:
      * - Verify deleting an invoice removes the invoice and triggers the model's deleting
      *   event behavior (cascade or cleanup of clients/addresses when appropriate).

@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Contracts\Validation\Validator;
 
 class InvoiceRequest extends FormRequest
 {
@@ -19,17 +21,16 @@ class InvoiceRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules(): array
-    {
+    public function rules(): array {
         $reqIfPending = '|required_if:status,pending';
-
+        $idRule = [];
          // POST generates a new id in the controller, PUT/PATCH already have ID
         if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
-            $rules = ['id' => 'regex:/^[A-Z]{2}[0-9]{4}$/|required_if:status,pending,paid'];
+            $idRule = ['id' => 'regex:/^[A-Z]{2}[0-9]{4}$/|required_if:status,pending,paid'];
         }
-        
-        
-        $rules = array_merge($rules, [
+
+
+        $rules = array_merge($idRule, [
             'issue_date' => 'date|date_format:Y-m-d' . $reqIfPending,
             'description' => 'string|max:2000' . $reqIfPending,
             'payment_terms' => 'integer|min:1|max:36525' . $reqIfPending,
@@ -48,11 +49,26 @@ class InvoiceRequest extends FormRequest
             'client_address.country' => 'string|max:100' . $reqIfPending,
             'line_items' => 'array' . $reqIfPending,
             'line_items.*.name' => 'string|max:100' . $reqIfPending,
-            'line_items.*.quantity' => 'integer' . $reqIfPending,
-            'line_items.*.price_unit_cents' => 'integer' . $reqIfPending,
-            'line_items.*.price_total_cents' => 'integer' . $reqIfPending
+            'line_items.*.quantity' => 'integer|min:0' . $reqIfPending,
+            'line_items.*.price_unit_cents' => 'integer|min:0' . $reqIfPending,
         ]);
 
         return $rules;
+    }
+
+    /**
+     * Handle a failed validation attempt so that 422 is returned instead of just throwing an exception.
+     *
+     * @return void
+     *
+     * @throws \Illuminate\Http\Exceptions\HttpResponseException
+     */
+    protected function failedValidation(Validator $validator): void {
+        // Instead of throwing an exception, you can return a custom response.
+        // For example, returning a JSON response with validation errors:
+        throw new HttpResponseException(response()->json([
+            'message' => 'Request validation failed',
+            'errors' => $validator->errors()
+        ], 422));
     }
 }
