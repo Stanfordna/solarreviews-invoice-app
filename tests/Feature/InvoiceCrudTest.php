@@ -312,7 +312,39 @@ class InvoiceCrudTest extends TestCase
     }
 
     public function test_post_pending_creates_clients_and_addresses_when_they_do_not_already_exist() {
+        $pendingInvoiceData = $this->createInvoicesRequestData($status = 'pending')
+        $this->assertDatabaseMissing('clients',
+            [
+                'full_name' => $pendingInvoiceData['client_name'],
+                'email' => $pendingInvoiceData['client_name']
+            ]);
+        $this->assertDatabaseMissing('addresses',
+            [
+                'street' => => $pendingInvoiceData['client_address']['street'],
+                'city' => => $pendingInvoiceData['client_address']['city'],
+                'postal_code' => => $pendingInvoiceData['client_address']['postal_code'],
+                'country' => => $pendingInvoiceData['client_address']['country']
+            ]);
+        $this->assertDatabaseMissing('addresses',
+            [
+                'street' => => $pendingInvoiceData['sender_address']['street'],
+                'city' => => $pendingInvoiceData['sender_address']['city'],
+                'postal_code' => => $pendingInvoiceData['sender_address']['postal_code'],
+                'country' => => $pendingInvoiceData['sender_address']['country']
+            ]);
 
+        $response = $this->post(route('invoices.store', $pendingInvoiceData));
+        // createInvoicesRequestData
+        $response->assertStatus(201);
+        $responseJson = $response->json();
+        $invoiceId = $responseJson['invoice_id'];
+        $newInvoice = Invoice::find($invoiceId);
+
+        $this->validate_invoice_id($newInvoice->id);
+        $this->validate_invoice_line_items_and_total($invoiceId, $draftInvoiceData['line_items']);
+        $this->validate_record_is_latest_copy_in_table($newInvoice->client);
+        $this->validate_record_is_latest_copy_in_table($newInvoice->senderAddress);
+        $this->validate_record_is_latest_copy_in_table($newInvoice->clientAddress);
     }
 
     public function test_post_pending_references_preexisting_clients_and_addresses() {
@@ -435,33 +467,9 @@ class InvoiceCrudTest extends TestCase
     }
 
     public function test_post_paid_is_rejected() {
-
-    }
-
-    public function _test_post_stores_new_draft_invoice_with_a_well_formed_id_and_code_201(): void {
-        $response = $this->post(route('invoices.store', $this->createInvoicesRequestData()));
-        $response->assertStatus(201);
-        $responseData = $response->json();
-        $newRecordId = $responseData['invoice_id'];
-        $this->validate_invoice_id($newRecordId);
-    }
-
-    public function _test_post_rejects_pending_invoice_when_fields_are_missing(): void {
-        $pendingInvoiceData = $this->createInvoicesRequestData(status: 'pending');
-        $pendingInvoiceData['description'] = '';
-        $response = $this->post(route('invoices.store', $pendingInvoiceData));
+        // post will reject a complete invoice form with no missing fields if status is paid.
+        $response = $this->post(route('invoices.store', $this->createInvoicesRequestData($status = 'paid')));
         $response->assertStatus(422);
-    }
-
-    public function _test_post_accepts_draft_invoice_when_fields_are_missing(): void {
-        $draftInvoiceData = $this->createInvoicesRequestData();
-        $draftInvoiceData['description'] = '';
-        $response = $this->post(route('invoices.store', $draftInvoiceData));
-        $response->assertStatus(201);
-        $responseData = $response->json();
-        $newRecordId = $responseData['invoice_id'];
-        $this->assertDatabaseHas('invoices', ['id' => $newRecordId]);
-
     }
 
 
