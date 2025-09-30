@@ -284,6 +284,7 @@ class InvoiceCrudTest extends TestCase
         $draftInvoiceData['client_address']['country'] = $randomClientAddress->country;
 
         $response = $this->post(route('invoices.store', $draftInvoiceData));
+        $response->assertStatus(201);
         $responseJson = $response->json();
         $invoiceId = $responseJson['invoice_id'];
         $newInvoice = Invoice::find($invoiceId);
@@ -367,6 +368,7 @@ class InvoiceCrudTest extends TestCase
         $pendingInvoiceData['status'] = 'pending';
         // because status = pending, this invoice will reference the first client/address records
         $response = $this->post(route('invoices.store', $pendingInvoiceData));
+        $response->assertStatus(201);
 
         $responseJson = $response->json();
         $invoiceId = $responseJson['invoice_id'];
@@ -380,8 +382,56 @@ class InvoiceCrudTest extends TestCase
 
     }
 
+    /**
+     * TODO: Explain this function and possibly grep the assertion to ensure 422 has a message about the specific key
+     * also consider setting field to "" instead of unsetting, or doing "" then unset
+     */
     public function test_post_pending_requires_all_fields() {
+        $requestFields = array_keys($this->createInvoicesRequestData());
+        $completeRequestData = $this->createInvoicesRequestData($status = 'pending');
 
+        foreach ($requestFields as $field) {
+
+            // test unsetting nested keys
+            if (is_array($completeRequestData[$field]) && array_keys($completeRequestData[$field]) !== range(0, count($completeRequestData[$field]) - 1)) {
+                // if array keys are named (it's an associative array), we want to test unsetting
+                // each of them to make sure all inner fields are required for pending invoices.
+                $innerArray = $completeRequestData[$field];
+
+                foreach (array_keys($innerArray) as $innerField)) {
+                    // make a fresh copy of the request data to test unsetting this field
+                    $incompleteRequestData = $this->createInvoicesRequestData($status = 'pending');
+                    unset($incompleteRequestData[$field][$innerField]);
+
+                    $response = $this->post(route('invoices.store', $incompleteRequestData);
+                    $response->assertStatus(422);
+                }
+
+            } else if (is_array($completeRequestData[$field] && is_array($completeRequestData[$field][0])) {
+                // if array keys are numbered (a "regular" array), we make sure the 0th element is also an array and we want to test 
+                // unsetting each of that element's inner keys to make sure all inner fields are required for pending invoices.
+                $innerArray = $completeRequestData[$field][0];
+
+                foreach (array_keys($innerArray) as $innerField)) {
+                    // make a fresh copy of the request data to test unsetting this field
+                    $incompleteRequestData = $this->createInvoicesRequestData($status = 'pending');
+                    unset($incompleteRequestData[$field][0][$innerField]);
+
+                    $response = $this->post(route('invoices.store', $incompleteRequestData);
+                    $response->assertStatus(422);
+                }
+            }
+
+            // make a fresh copy of the request data to test unsetting this field
+            $incompleteRequestData = $this->createInvoicesRequestData($status = 'pending');
+            unset($incompleteRequestData[$field];
+            $response = $this->post(route('invoices.store', $incompleteRequestData);
+            $response->assertStatus(422);
+        }
+
+        // finally, show that post accepts a complete form request when status is "pending".
+        $response = $this->post(route('invoices.store', $completeRequestData);
+        $response->assertStatus(201);
     }
 
     public function test_post_paid_is_rejected() {
