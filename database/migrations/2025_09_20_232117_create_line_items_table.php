@@ -15,11 +15,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('invoice_id')->references('id')->on('invoices')
                   ->onDelete('cascade');
-            $table->string('name');
-            $table->unsignedInteger('quantity');
-            $table->unsignedInteger('price_unit_cents');
-            $table->unsignedInteger('price_total_cents');
+            $table->string('name')->nullable();
+            $table->unsignedInteger('quantity')->nullable();
+            $table->unsignedInteger('price_unit_cents')->nullable();
+            $table->unsignedInteger('price_total_cents')->nullable();
             $table->timestamps();
+            $table->unique(['invoice_id', 'name']);
+
         });
     }
 

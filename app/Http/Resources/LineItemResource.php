@@ -14,6 +14,7 @@ class LineItemResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'id' => $this->id,
             'name' => $this->name,
             'quantity' => $this->quantity,
             'price_unit_cents' => $this->price_unit_cents,

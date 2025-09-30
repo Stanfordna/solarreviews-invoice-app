@@ -66,6 +66,8 @@ class Invoice extends Model
             if (!$addressInOtherInvoices) {
                 $senderAddress->delete();
             }
+
+            $invoice->lineItems()->delete();
         });
     }
 

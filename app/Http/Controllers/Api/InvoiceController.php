@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Address;
 use App\Models\Invoice;
 use App\Http\Requests\InvoiceRequest;
+use App\Models\LineItem;
 
 class InvoiceController extends Controller
 {
@@ -56,46 +57,66 @@ class InvoiceController extends Controller
         // isSet returns FALSE if $variable has not been assigned or if it is NULL.
         // create records for client/address if invoice is a draft or pending invoice references new clinet/addresses
         if (!isset($client)) {
-            $client = Client::create([
-                'full_name' => $data['client_name'],
-                'email' => $data['client_email']
-            ]);
+            $clientData = [];
+            $clientData['full_name'] = $data['client_name'] ?? "";
+            $clientData['email'] = $data['client_email'] ?? "";
+            $client = Client::create($clientData);
         }
         if (!isset($senderAddress)) {
-            $senderAddress = Address::create([
-                'street' => $data['sender_address']['street'],
-                'city' => $data['sender_address']['city'],
-                'postal_code' => $data['sender_address']['postal_code'],
-                'country' => $data['sender_address']['country']
-            ]);
+            $senderAddressData = [];
+            $senderAddressData['street'] = $data['sender_address']['street'] ?? "";
+            $senderAddressData['city'] = $data['sender_address']['city'] ?? "";
+            $senderAddressData['postal_code'] = $data['sender_address']['postal_code'] ?? "";
+            $senderAddressData['country'] = $data['sender_address']['country'] ?? "";
+            $senderAddress = Address::create($senderAddressData);
         }
         if (!isset($clientAddress)) {
-            $clientAddress = Address::create([
-                'street' => $data['client_address']['street'],
-                'city' => $data['client_address']['city'],
-                'postal_code' => $data['client_address']['postal_code'],
-                'country' => $data['client_address']['country']
-            ]);
+            $clientAddressData = [];
+            $clientAddressData['street'] = $data['client_address']['street'] ?? "";
+            $clientAddressData['city'] = $data['client_address']['city'] ?? "";
+            $clientAddressData['postal_code'] = $data['client_address']['postal_code'] ?? "";
+            $clientAddressData['country'] = $data['client_address']['country'] ?? "";
+            $clientAddress = Address::create($clientAddressData);
         }
 
-        $invoiceTotal = 100;
-        // TODO make line item records
-        //  TODO calculate total
+        $invoiceTotal = 0;
+        if (!isset($data['line_items'])) $data['line_items'] = [];
+        foreach ($data['line_items'] as $lineItem) {
+            $lineItem['price_total_cents'] = $lineItem['price_unit_cents'] * $lineItem['quantity'];
+            $invoiceTotal += $lineItem['price_total_cents'];
+        }
 
         // calculate due date from payment terms
-        $dueDate = date('Y-m-d', strtotime("{$data['issue_date']} +{$data['payment_terms']} days"));
+        if (!isset($data['issue_date']) || !isset($data['payment_terms'])) {
+            $dueDate = null;
+        } else {
+            $dueDate = date('Y-m-d', strtotime("{$data['issue_date']} +{$data['payment_terms']} days"));
+        }
 
-        $newInvoice = Invoice::create([
-            'issue_date' => $data['issue_date'],
-            'due_date' => $dueDate,
-            'description' => $data['description'],
-            'payment_terms' => $data['payment_terms'],
-            'client_id' => $client->id,
-            'status' => $data['status'],
-            'sender_address_id' => $senderAddress->id,
-            'client_address_id' => $clientAddress->id,
-            'total_cents' => $invoiceTotal
-        ]);
+
+        $newInvoiceData = [];
+        $newInvoiceData['issue_date'] = $data['issue_date'] ?? "";
+        $newInvoiceData['due_date'] = $dueDate ?? "";
+        $newInvoiceData['description'] = $data['description'] ?? "";
+        $newInvoiceData['payment_terms'] = $data['payment_terms'] ?? 0;
+        $newInvoiceData['client_id'] = $client->id;
+        $newInvoiceData['status'] = $data['status'];
+        $newInvoiceData['sender_address_id'] = $senderAddress->id;
+        $newInvoiceData['client_address_id'] = $clientAddress->id;
+        $newInvoiceData['total_cents'] = $invoiceTotal;
+        $newInvoice = Invoice::create($newInvoiceData);
+
+        // create line items using new invoice id for foreign key
+        foreach ($data['line_items'] as $lineItem) {
+            // for a post request we are making all new line items, not updating or removing existing ones.
+            LineItem::create([
+                'invoice_id' => $newInvoice->id,
+                'name' => $lineItem['name'],
+                'quantity' => $lineItem['quantity'],
+                'price_unit_cents' => $lineItem['price_unit_cents'],
+                'price_total_cents' => $lineItem['price_unit_cents'] * $lineItem['quantity']
+            ]);
+        }
 
         // Return the invoice ID in the response
         return response()->json([

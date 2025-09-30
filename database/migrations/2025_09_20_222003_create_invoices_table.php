@@ -17,10 +17,10 @@ return new class extends Migration
     {
         Schema::create('invoices', function (Blueprint $table) {
             $table->string('id', 6)->primary(); // two random uppercase followed by 4 random digits
-            $table->date('issue_date')->default(now());
-            $table->date('due_date');
+            $table->date('issue_date')->nullable();
+            $table->date('due_date')->nullable();
             $table->string('description')->nullable();
-            $table->unsignedSmallInteger('payment_terms')->default(1);
+            $table->unsignedSmallInteger('payment_terms')->default(0);
             $table->foreignId('client_id')->nullable()
                   ->constrained('clients')->onDelete('set null');
             $table->string('status')->default('draft'); // draft, pending, paid
@@ -28,7 +28,7 @@ return new class extends Migration
                   ->constrained('addresses')->onDelete('set null');
             $table->foreignId('client_address_id')->nullable()
                   ->constrained('addresses')->onDelete('set null');
-            $table->unsignedInteger('total_cents'); // represent price in whole cents
+            $table->unsignedInteger('total_cents')->default(0); // represent price in whole cents
             $table->timestamps();
         });
     }
