@@ -29,6 +29,11 @@ class InvoiceRequest extends FormRequest
             $idRule = ['id' => 'regex:/^[A-Z]{2}[0-9]{4}$/|required_if:status,pending,paid'];
         }
 
+        // A request must not PUT a paid invoice
+        $allowedStatus = 'required|string|in:draft,pending,paid';
+        if ($this->isMethod('POST')) {
+            $allowedStatus = 'required|string|in:draft,pending';
+        }
 
         $rules = array_merge($idRule, [
             'issue_date' => 'date|date_format:Y-m-d|nullable' . $reqIfPending,
@@ -36,7 +41,7 @@ class InvoiceRequest extends FormRequest
             'payment_terms' => 'integer|min:0|max:36525|nullable' . $reqIfPending,
             'client_name' => 'string|max:100|nullable' . $reqIfPending,
             'client_email' => 'email|max:100|nullable' . $reqIfPending,
-            'status' => 'required|string|in:draft,pending,paid',
+            'status' => $allowedStatus,
             'sender_address' => 'array|nullable' . $reqIfPending,
             'sender_address.street' => 'string|max:100|nullable' . $reqIfPending,
             'sender_address.city' => 'string|max:100|nullable' . $reqIfPending,

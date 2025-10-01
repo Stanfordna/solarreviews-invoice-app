@@ -26,11 +26,19 @@ class InvoiceCrudTest extends TestCase
     }
 
     /**
-     * Generate an associative array for the "data" section of a request for POST/PUT/PATCH operations.
-     * Function call can specify to create a well-formed PUT/PATCH request, as well as status.
+     * Generate a well-formed request for POST/PUT/PATCH operations.
+     * Function call can specify id as well as status.
      * For tests of behaviors when missing data, test methods should manually set values to "" or null.
+     * 
+     * TODO: when objects are specified populate with that data
      */
-    protected function createInvoicesRequestData(string $id = '', string $status = 'draft'): array {
+    protected function createInvoicesRequestData(
+        string $id = '',
+        string $status = 'draft',
+        Client $client = null,
+        Address $clientAddress = null,
+        Address $senderAddress = null
+        ): array {
         $data = [
             'id' => $id,
             'issue_date' => date('Y-m-d'),
@@ -74,16 +82,16 @@ class InvoiceCrudTest extends TestCase
 
 
     /*************************************************************************************
-     ******************************** Common Tests ***************************************  TODO: Make sure this is finished
+     ******************************** Common Tests ***************************************
      *************************************************************************************
      * Purpose:
-     * - functions for repetitive assertions, especially for
+     * - functions for repetitive assertions that many responses and records should adhere to
      *
-     * Asserions
+     * Assertions
      * - ensure database contains a specific invoice id and that it is well formed
-     * - ensure database has line items with specific invoice id and validate the total
-     * - validate that a record is the first in its table
-     * - validate that a record is the most recently created record
+     * - ensure database has line items with specific invoice id and validate the total (compare db total to calculated request line items sum)
+     * - validate that a record is the first/oldest in its table
+     * - validate that a record is the last/latest record in its table
      */
     public function validate_invoice_id($invoiceId) {
         // database contains a specific invoice id and that it matches the appropriate format
@@ -299,7 +307,7 @@ class InvoiceCrudTest extends TestCase
         $this->assertNotEquals($randomClientAddress->id, $newInvoice->clientAddress->id);
     }
 
-    public function test_post_draft_has_no_required_fields_except_status() {
+    public function test_post_draft_has_no_required_fields_except_status(): void {
         $draftInvoiceData = [
             'status' => 'draft'
         ];
@@ -308,11 +316,12 @@ class InvoiceCrudTest extends TestCase
         $responseData = $response->json();
         $newRecordId = $responseData['invoice_id'];
         $this->validate_invoice_id($newRecordId);
+        $this->validate_invoice_line_items_and_total($newRecordId, []);
         $this->assertDatabaseHas('invoices', ['id' => $newRecordId, 'total_cents' => 0]);
     }
 
-    public function test_post_pending_creates_clients_and_addresses_when_they_do_not_already_exist() {
-        $pendingInvoiceData = $this->createInvoicesRequestData($status = 'pending')
+    public function test_post_pending_creates_clients_and_addresses_when_they_do_not_already_exist(): void {
+        $pendingInvoiceData = $this->createInvoicesRequestData(status: 'pending');
         $this->assertDatabaseMissing('clients',
             [
                 'full_name' => $pendingInvoiceData['client_name'],
@@ -320,17 +329,17 @@ class InvoiceCrudTest extends TestCase
             ]);
         $this->assertDatabaseMissing('addresses',
             [
-                'street' => => $pendingInvoiceData['client_address']['street'],
-                'city' => => $pendingInvoiceData['client_address']['city'],
-                'postal_code' => => $pendingInvoiceData['client_address']['postal_code'],
-                'country' => => $pendingInvoiceData['client_address']['country']
+                'street' => $pendingInvoiceData['client_address']['street'],
+                'city' => $pendingInvoiceData['client_address']['city'],
+                'postal_code' => $pendingInvoiceData['client_address']['postal_code'],
+                'country' => $pendingInvoiceData['client_address']['country']
             ]);
         $this->assertDatabaseMissing('addresses',
             [
-                'street' => => $pendingInvoiceData['sender_address']['street'],
-                'city' => => $pendingInvoiceData['sender_address']['city'],
-                'postal_code' => => $pendingInvoiceData['sender_address']['postal_code'],
-                'country' => => $pendingInvoiceData['sender_address']['country']
+                'street' => $pendingInvoiceData['sender_address']['street'],
+                'city' => $pendingInvoiceData['sender_address']['city'],
+                'postal_code' => $pendingInvoiceData['sender_address']['postal_code'],
+                'country' => $pendingInvoiceData['sender_address']['country']
             ]);
 
         $response = $this->post(route('invoices.store', $pendingInvoiceData));
@@ -341,13 +350,13 @@ class InvoiceCrudTest extends TestCase
         $newInvoice = Invoice::find($invoiceId);
 
         $this->validate_invoice_id($newInvoice->id);
-        $this->validate_invoice_line_items_and_total($invoiceId, $draftInvoiceData['line_items']);
+        $this->validate_invoice_line_items_and_total($invoiceId, $pendingInvoiceData['line_items']);
         $this->validate_record_is_latest_copy_in_table($newInvoice->client);
         $this->validate_record_is_latest_copy_in_table($newInvoice->senderAddress);
         $this->validate_record_is_latest_copy_in_table($newInvoice->clientAddress);
     }
 
-    public function test_post_pending_references_preexisting_clients_and_addresses() {
+    public function test_post_pending_finds_and_references_preexisting_clients_and_addresses(): void {
         // assert that even if we use data of an existing client and addresses in an invoice,
         // new client and address records are created.
         $randomClient = Client::inRandomOrder()
@@ -418,57 +427,74 @@ class InvoiceCrudTest extends TestCase
      * TODO: Explain this function and possibly grep the assertion to ensure 422 has a message about the specific key
      * also consider setting field to "" instead of unsetting, or doing "" then unset
      */
-    public function test_post_pending_requires_all_fields() {
-        $requestFields = array_keys($this->createInvoicesRequestData());
-        $completeRequestData = $this->createInvoicesRequestData($status = 'pending');
+    public function test_post_pending_requires_all_fields_except_id(): void {
+        $completeRequestData = $this->createInvoicesRequestData(status: 'pending');
 
+        // show that post request is successful when "id" field is removed
+        unset($completeRequestData['id']);
+        $response = $this->post(route('invoices.store', $completeRequestData));
+        $response->assertStatus(201);
+
+        $requestFields = array_keys($completeRequestData);
         foreach ($requestFields as $field) {
-
             // test unsetting nested keys
             if (is_array($completeRequestData[$field]) && array_keys($completeRequestData[$field]) !== range(0, count($completeRequestData[$field]) - 1)) {
                 // if array keys are named (it's an associative array), we want to test unsetting
                 // each of them to make sure all inner fields are required for pending invoices.
                 $innerArray = $completeRequestData[$field];
 
-                foreach (array_keys($innerArray) as $innerField)) {
+                foreach (array_keys($innerArray) as $innerField) {
                     // make a fresh copy of the request data to test unsetting this field
-                    $incompleteRequestData = $this->createInvoicesRequestData($status = 'pending');
-                    unset($incompleteRequestData[$field][$innerField]);
+                    $incompleteRequestData = $this->createInvoicesRequestData(status: 'pending');
 
-                    $response = $this->post(route('invoices.store', $incompleteRequestData);
+                    $incompleteRequestData[$field][$innerField] = '';
+                    $response = $this->post(route('invoices.store', $incompleteRequestData));
+                    $response->assertStatus(422);
+
+                    unset($incompleteRequestData[$field][$innerField]);
+                    $response = $this->post(route('invoices.store', $incompleteRequestData));
                     $response->assertStatus(422);
                 }
 
-            } else if (is_array($completeRequestData[$field] && is_array($completeRequestData[$field][0])) {
+            } else if (is_array($completeRequestData[$field]) && is_array($completeRequestData[$field][0])) {
                 // if array keys are numbered (a "regular" array), we make sure the 0th element is also an array and we want to test 
                 // unsetting each of that element's inner keys to make sure all inner fields are required for pending invoices.
                 $innerArray = $completeRequestData[$field][0];
 
-                foreach (array_keys($innerArray) as $innerField)) {
+                foreach (array_keys($innerArray) as $innerField) {
                     // make a fresh copy of the request data to test unsetting this field
-                    $incompleteRequestData = $this->createInvoicesRequestData($status = 'pending');
-                    unset($incompleteRequestData[$field][0][$innerField]);
+                    $incompleteRequestData = $this->createInvoicesRequestData(status: 'pending');
 
-                    $response = $this->post(route('invoices.store', $incompleteRequestData);
+                    $incompleteRequestData[$field][0][$innerField] = "";
+                    $response = $this->post(route('invoices.store', $incompleteRequestData));
+                    $response->assertStatus(422);
+
+                    unset($incompleteRequestData[$field][0][$innerField]);
+                    $response = $this->post(route('invoices.store', $incompleteRequestData));
                     $response->assertStatus(422);
                 }
             }
 
             // make a fresh copy of the request data to test unsetting this field
-            $incompleteRequestData = $this->createInvoicesRequestData($status = 'pending');
-            unset($incompleteRequestData[$field];
-            $response = $this->post(route('invoices.store', $incompleteRequestData);
+            $incompleteRequestData = $this->createInvoicesRequestData(status: 'pending');
+
+            $incompleteRequestData[$field] = "";
+            $response = $this->post(route('invoices.store', $incompleteRequestData));
+            $response->assertStatus(422);
+            
+            unset($incompleteRequestData[$field]);
+            $response = $this->post(route('invoices.store', $incompleteRequestData));
             $response->assertStatus(422);
         }
 
         // finally, show that post accepts a complete form request when status is "pending".
-        $response = $this->post(route('invoices.store', $completeRequestData);
+        $response = $this->post(route('invoices.store', $completeRequestData));
         $response->assertStatus(201);
     }
 
-    public function test_post_paid_is_rejected() {
+    public function test_post_paid_is_rejected(): void {
         // post will reject a complete invoice form with no missing fields if status is paid.
-        $response = $this->post(route('invoices.store', $this->createInvoicesRequestData($status = 'paid')));
+        $response = $this->post(route('invoices.store', $this->createInvoicesRequestData(status: 'paid')));
         $response->assertStatus(422);
     }
 
@@ -531,7 +557,6 @@ class InvoiceCrudTest extends TestCase
     }
 
     public function test_get_invoice_id_that_does_not_exist_returns_404(): void {
-
         $nonExistentInvoiceId = 'AAA000'; // this ID won't exist because it has three letters
         $response = $this->get(route('invoices.show', $nonExistentInvoiceId));
         $response->assertStatus(404);
@@ -557,7 +582,59 @@ class InvoiceCrudTest extends TestCase
      * - Attempt to update immutable fields (like id) -> should be rejected or ignored
      * - Update causing client/address to change -> ensure old client/address deleted only when no other invoices reference them
      */
+    public function examples(): void {
+        $var = 0;
+        $randomAddress = Address::inRandomOrder()->where('id', '!=', $var)->first();
+        $randomClient = Client::inRandomOrder()->where('id', '!=', $var)->first();
+        $randomInvoice = Invoice::inRandomOrder()->where('status', 'draft')->first();
+        
+        // Note- any put pending should always reference first record in table
+        // validate_invoice_line_items_and_total
+        // validate_invoice_id
+        // createInvoicesRequestData needs an update
+    }
 
+    public function _test_put_draft_cannot_update_pending_or_paid_back_to_draft(): void {
+        // self explanatory, may have to update seed data
+    }
+
+    public function _test_put_draft_has_no_required_fields_except_status_and_id(): void {
+        // load status first, get 422, then load an id, get 201 (double check 201)
+    }
+
+    public function _test_put_draft_creates_new_clients_and_addresses_when_other_invoices_use_current_clients_and_addresses(): void {
+        // this test makes sure that a client or address is not updated when it would change the content of another invoice
+        // find an invoice with a client and address that exists on another invoice.
+        // update them to brand new clients and invoices
+        // observe that the ids are different, the new id points to an appropriate record, and the old ids still reference the old values 
+
+        // call validate_record_is_latest_copy_in_table
+    }
+
+    public function _test_put_draft_updates_current_clients_and_addresses_when_updates_do_not_affect_other_invoices(): void {
+        // this should take an invoice with client/address that do not exist elsewhere and update those records to values that do not exist elsewhere
+        // id should stay the same, indicating that the same referenced record was updated
+    }
+
+    public function _test_put_pending_creates_new_clients_and_addresses_when_necessary(): void {
+
+        // call validate_record_is_latest_copy_in_table
+    }
+
+    public function _test_put_pending_erases_unused_client_and_address_records(): void {
+        // this test should update a client/address record not referenced on another invoice
+        // the updated values will match another record, and client/address id's will validate that
+
+        // call validate_record_is_oldest_copy_in_table
+    }
+
+    public function _test_put_pending_requires_all_fields(): void {
+        // iterate through as in post
+    }
+
+    public function _test_put_paid_has_no_required_fields_except_status_and_id(): void {
+
+    }
 
     /*************************************************************************************
      ******** Test: DELETE /invoices/{id} (InvoiceController::destroy()) *****************
