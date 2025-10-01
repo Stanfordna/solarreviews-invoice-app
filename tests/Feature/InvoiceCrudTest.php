@@ -35,51 +35,74 @@ class InvoiceCrudTest extends TestCase
     protected function createInvoicesRequestData(
         string $id = '',
         string $status = 'draft',
+        Invoice $invoice = null,
         Client $client = null,
         Address $clientAddress = null,
         Address $senderAddress = null
         ): array {
-        $data = [
-            'id' => $id,
-            'issue_date' => date('Y-m-d'),
-            'description' => 'Test invoice description',
-            'payment_terms' => 30,
-            'client_name' => 'Ricky Bobby',
-            'client_email' => 'el.diablo@gmail.com',
-            'status' => $status,
-            'sender_address' => [
-                'street' => '930 Acoma Street Unit 316',
-                'city' => 'Denver',
-                'postal_code' => '80204',
-                'country' => 'United States of America',
-            ],
-            'client_address' => [
-                'street' => '17240 Connor Quay Ct',
-                'city' => 'Cornelius',
-                'postal_code' => '28031',
-                'country' => 'United States of America',
-            ],
-            'line_items' => [
-                [
-                    'name' => 'apple',
-                    'quantity' => 1,
-                    'price_unit_cents' => 5000
+
+        if (is_null($invoice)) {
+            $data = [
+                'id' => $id,
+                'issue_date' => date('Y-m-d'),
+                'description' => 'Test invoice description',
+                'payment_terms' => 30,
+                'client_name' => 'Ricky Bobby',
+                'client_email' => 'el.diablo@gmail.com',
+                'status' => $status,
+                'sender_address' => [
+                    'street' => '930 Acoma Street Unit 316',
+                    'city' => 'Denver',
+                    'postal_code' => '80204',
+                    'country' => 'United States of America',
                 ],
-                [
-                    'name' => 'banana',
-                    'quantity' => 3,
-                    'price_unit_cents' => 4000
+                'client_address' => [
+                    'street' => '17240 Connor Quay Ct',
+                    'city' => 'Cornelius',
+                    'postal_code' => '28031',
+                    'country' => 'United States of America',
                 ],
-                [
-                    'name' => 'carrot',
-                    'quantity' => 2,
-                    'price_unit_cents' => 2500
+                'line_items' => [
+                    [
+                        'name' => 'apple',
+                        'quantity' => 1,
+                        'price_unit_cents' => 5000
+                    ],
+                    [
+                        'name' => 'banana',
+                        'quantity' => 3,
+                        'price_unit_cents' => 4000
+                    ],
+                    [
+                        'name' => 'carrot',
+                        'quantity' => 2,
+                        'price_unit_cents' => 2500
+                    ],
                 ],
-            ],
-        ];
+            ];
+        } else {
+            $data = new InvoiceResource($invoice)->toArray(null);
+        }
+
+        if (isset($client)) {
+            $data['client_name'] = $client->full_name;
+            $data['client_email'] = $client->email;
+        }
+        if (isset($clientAddress)) {
+            $data['sender_address']['street'] = $senderAddress->street;
+            $data['sender_address']['city'] = $senderAddress->city;
+            $data['sender_address']['postal_code'] = $senderAddress->postal_code;
+            $data['sender_address']['country'] = $senderAddress->country;
+        }
+        if (isset($senderAddress)) {
+            $data['client_address']['street'] = $clientAddress->street;
+            $data['client_address']['city'] = $clientAddress->city;
+            $data['client_address']['postal_code'] = $clientAddress->postal_code;
+            $data['client_address']['country'] = $clientAddress->country;
+        }
+
         return $data;
     }
-
 
     /*************************************************************************************
      ******************************** Common Tests ***************************************
@@ -308,6 +331,10 @@ class InvoiceCrudTest extends TestCase
     }
 
     public function test_post_draft_has_no_required_fields_except_status(): void {
+        $emptyInvoiceData = [];
+        $response = $this->post(route('invoices.store', $emptyInvoiceData));
+        $response->assertStatus(422);
+
         $draftInvoiceData = [
             'status' => 'draft'
         ];
@@ -319,7 +346,6 @@ class InvoiceCrudTest extends TestCase
         $this->validate_invoice_line_items_and_total($newRecordId, []);
         $this->assertDatabaseHas('invoices', ['id' => $newRecordId, 'total_cents' => 0]);
     }
-
     public function test_post_pending_creates_clients_and_addresses_when_they_do_not_already_exist(): void {
         $pendingInvoiceData = $this->createInvoicesRequestData(status: 'pending');
         $this->assertDatabaseMissing('clients',
@@ -594,12 +620,29 @@ class InvoiceCrudTest extends TestCase
         // createInvoicesRequestData needs an update
     }
 
-    public function _test_put_draft_cannot_update_pending_or_paid_back_to_draft(): void {
-        // self explanatory, may have to update seed data
+    public function test_put_draft_cannot_update_pending_or_paid_back_to_draft(): void {
+        $randomPendingInvoice = Invoice::inRandomOrder()->where('status', 'pending')->first();
+        $requestData = $this->createInvoicesRequestData(status: 'draft', $randomPendingInvoice)
+        dump("\ntest_put_draft_cannot_update_pending_or_paid_back_to_draft\n" .
+            "____________________________________________________________\n" .
+            "status was changed from pending to draft in this request:\n\n");
+        dump(json_encode($requestData, JSON_PRETTY_PRINT));
+        $response = $this->post(route('invoices.store', $requestData));
+        $response->assertStatus(422);
+
+        $randomPaidInvoice = Invoice::inRandomOrder()->where('status', 'paid')->first();
+        $requestData = $this->createInvoicesRequestData(status: 'draft', $randomPaidInvoice)
+        dump("\ntest_put_draft_cannot_update_pending_or_paid_back_to_draft\n" .
+            "____________________________________________________________\n" .
+            "status was changed from paid to draft in this request:\n\n");
+        dump(json_encode($requestData, JSON_PRETTY_PRINT));
+        $response = $this->post(route('invoices.store', $requestData));
+        $response->assertStatus(422);
     }
 
     public function _test_put_draft_has_no_required_fields_except_status_and_id(): void {
         // load status first, get 422, then load an id, get 201 (double check 201)
+        $data = [];
     }
 
     public function _test_put_draft_creates_new_clients_and_addresses_when_other_invoices_use_current_clients_and_addresses(): void {
