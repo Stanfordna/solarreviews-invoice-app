@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Resources\InvoiceResource;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use App\Models\Client;
@@ -34,14 +35,17 @@ class InvoiceCrudTest extends TestCase
      */
     protected function createInvoicesRequestData(
         string $id = '',
-        string $status = 'draft',
-        Invoice $invoice = null,
-        Client $client = null,
-        Address $clientAddress = null,
-        Address $senderAddress = null
+        ?string $status = null,
+        ?Invoice $invoice = null,
+        ?Client $client = null,
+        ?Address $clientAddress = null,
+        ?Address $senderAddress = null
         ): array {
 
         if (is_null($invoice)) {
+            if (is_null($status)) {
+                $status = 'draft';
+            }
             $data = [
                 'id' => $id,
                 'issue_date' => date('Y-m-d'),
@@ -81,7 +85,10 @@ class InvoiceCrudTest extends TestCase
                 ],
             ];
         } else {
-            $data = new InvoiceResource($invoice)->toArray(null);
+            $data = new InvoiceResource($invoice)->toArray(request());
+            if (isset($status)) {
+                $data['status'] = $status;
+            }
         }
 
         if (isset($client)) {
@@ -313,8 +320,7 @@ class InvoiceCrudTest extends TestCase
         $draftInvoiceData['client_address']['city'] = $randomClientAddress->city;
         $draftInvoiceData['client_address']['postal_code'] = $randomClientAddress->postal_code;
         $draftInvoiceData['client_address']['country'] = $randomClientAddress->country;
-
-        $response = $this->post(route('invoices.store', $draftInvoiceData));
+        $response = $this->post(route('invoices.store'), $draftInvoiceData);
         $response->assertStatus(201);
         $responseJson = $response->json();
         $invoiceId = $responseJson['invoice_id'];
@@ -332,13 +338,13 @@ class InvoiceCrudTest extends TestCase
 
     public function test_post_draft_has_no_required_fields_except_status(): void {
         $emptyInvoiceData = [];
-        $response = $this->post(route('invoices.store', $emptyInvoiceData));
+        $response = $this->post(route('invoices.store'), $emptyInvoiceData);
         $response->assertStatus(422);
 
         $draftInvoiceData = [
             'status' => 'draft'
         ];
-        $response = $this->post(route('invoices.store', $draftInvoiceData));
+        $response = $this->post(route('invoices.store'), $draftInvoiceData);
         $response->assertStatus(201);
         $responseData = $response->json();
         $newRecordId = $responseData['invoice_id'];
@@ -368,7 +374,7 @@ class InvoiceCrudTest extends TestCase
                 'country' => $pendingInvoiceData['sender_address']['country']
             ]);
 
-        $response = $this->post(route('invoices.store', $pendingInvoiceData));
+        $response = $this->post(route('invoices.store'), $pendingInvoiceData);
         // createInvoicesRequestData
         $response->assertStatus(201);
         $responseJson = $response->json();
@@ -430,11 +436,11 @@ class InvoiceCrudTest extends TestCase
         $draftInvoiceData['client_address']['country'] = $randomClientAddress->country;
 
         // ensure there are duplicate copies of the same client and address records
-        $this->post(route('invoices.store', $draftInvoiceData));
+        $this->post(route('invoices.store'), $draftInvoiceData);
         $pendingInvoiceData = $draftInvoiceData;
         $pendingInvoiceData['status'] = 'pending';
         // because status = pending, this invoice will reference the first client/address records
-        $response = $this->post(route('invoices.store', $pendingInvoiceData));
+        $response = $this->post(route('invoices.store'), $pendingInvoiceData);
         $response->assertStatus(201);
 
         $responseJson = $response->json();
@@ -458,7 +464,7 @@ class InvoiceCrudTest extends TestCase
 
         // show that post request is successful when "id" field is removed
         unset($completeRequestData['id']);
-        $response = $this->post(route('invoices.store', $completeRequestData));
+        $response = $this->post(route('invoices.store'), $completeRequestData);
         $response->assertStatus(201);
 
         $requestFields = array_keys($completeRequestData);
@@ -474,11 +480,11 @@ class InvoiceCrudTest extends TestCase
                     $incompleteRequestData = $this->createInvoicesRequestData(status: 'pending');
 
                     $incompleteRequestData[$field][$innerField] = '';
-                    $response = $this->post(route('invoices.store', $incompleteRequestData));
+                    $response = $this->post(route('invoices.store'), $incompleteRequestData);
                     $response->assertStatus(422);
 
                     unset($incompleteRequestData[$field][$innerField]);
-                    $response = $this->post(route('invoices.store', $incompleteRequestData));
+                    $response = $this->post(route('invoices.store'), $incompleteRequestData);
                     $response->assertStatus(422);
                 }
 
@@ -492,11 +498,11 @@ class InvoiceCrudTest extends TestCase
                     $incompleteRequestData = $this->createInvoicesRequestData(status: 'pending');
 
                     $incompleteRequestData[$field][0][$innerField] = "";
-                    $response = $this->post(route('invoices.store', $incompleteRequestData));
+                    $response = $this->post(route('invoices.store'), $incompleteRequestData);
                     $response->assertStatus(422);
 
                     unset($incompleteRequestData[$field][0][$innerField]);
-                    $response = $this->post(route('invoices.store', $incompleteRequestData));
+                    $response = $this->post(route('invoices.store'), $incompleteRequestData);
                     $response->assertStatus(422);
                 }
             }
@@ -505,22 +511,22 @@ class InvoiceCrudTest extends TestCase
             $incompleteRequestData = $this->createInvoicesRequestData(status: 'pending');
 
             $incompleteRequestData[$field] = "";
-            $response = $this->post(route('invoices.store', $incompleteRequestData));
+            $response = $this->post(route('invoices.store'), $incompleteRequestData);
             $response->assertStatus(422);
             
             unset($incompleteRequestData[$field]);
-            $response = $this->post(route('invoices.store', $incompleteRequestData));
+            $response = $this->post(route('invoices.store'), $incompleteRequestData);
             $response->assertStatus(422);
         }
 
         // finally, show that post accepts a complete form request when status is "pending".
-        $response = $this->post(route('invoices.store', $completeRequestData));
+        $response = $this->post(route('invoices.store'), $completeRequestData);
         $response->assertStatus(201);
     }
 
     public function test_post_paid_is_rejected(): void {
         // post will reject a complete invoice form with no missing fields if status is paid.
-        $response = $this->post(route('invoices.store', $this->createInvoicesRequestData(status: 'paid')));
+        $response = $this->post(route('invoices.store'), $this->createInvoicesRequestData(status: 'paid'));
         $response->assertStatus(422);
     }
 
@@ -622,21 +628,14 @@ class InvoiceCrudTest extends TestCase
 
     public function test_put_draft_cannot_update_pending_or_paid_back_to_draft(): void {
         $randomPendingInvoice = Invoice::inRandomOrder()->where('status', 'pending')->first();
-        $requestData = $this->createInvoicesRequestData(status: 'draft', $randomPendingInvoice)
-        dump("\ntest_put_draft_cannot_update_pending_or_paid_back_to_draft\n" .
-            "____________________________________________________________\n" .
-            "status was changed from pending to draft in this request:\n\n");
-        dump(json_encode($requestData, JSON_PRETTY_PRINT));
-        $response = $this->post(route('invoices.store', $requestData));
+        $requestData = $this->createInvoicesRequestData(status: 'draft', invoice: $randomPendingInvoice);
+        $requestData['client_email'] = "temp@hotmail.com";
+        $response = $this->put(route('invoices.update', $randomPendingInvoice->id), $requestData);
         $response->assertStatus(422);
 
         $randomPaidInvoice = Invoice::inRandomOrder()->where('status', 'paid')->first();
-        $requestData = $this->createInvoicesRequestData(status: 'draft', $randomPaidInvoice)
-        dump("\ntest_put_draft_cannot_update_pending_or_paid_back_to_draft\n" .
-            "____________________________________________________________\n" .
-            "status was changed from paid to draft in this request:\n\n");
-        dump(json_encode($requestData, JSON_PRETTY_PRINT));
-        $response = $this->post(route('invoices.store', $requestData));
+        $requestData = $this->createInvoicesRequestData(status: 'draft', invoice: $randomPaidInvoice);
+        $response = $this->put(route('invoices.update', $randomPaidInvoice->id), $requestData);
         $response->assertStatus(422);
     }
 

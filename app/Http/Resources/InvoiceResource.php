@@ -34,7 +34,8 @@ class InvoiceResource extends JsonResource
                 'postal_code' => $this->clientAddress->postal_code,
                 'country' => $this->clientAddress->country
             ],
-            'line_items' => LineItemResource::collection($this->lineItems),
+            // ensure we return a plain array here (not an AnonymousResourceCollection object)
+            'line_items' => LineItemResource::collection($this->lineItems)->toArray($request),
             'total_cents' => $this->total_cents,
         ];
     }
