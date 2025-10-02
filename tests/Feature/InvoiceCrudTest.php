@@ -321,9 +321,8 @@ class InvoiceCrudTest extends TestCase
         $draftInvoiceData['client_address']['postal_code'] = $randomClientAddress->postal_code;
         $draftInvoiceData['client_address']['country'] = $randomClientAddress->country;
         $response = $this->post(route('invoices.store'), $draftInvoiceData);
-        $response->assertStatus(201);
-        $responseJson = $response->json();
-        $invoiceId = $responseJson['invoice_id'];
+        $response->assertStatus(201); 
+        $invoiceId = $response->json('invoice_id');
         $newInvoice = Invoice::find($invoiceId);
 
         $this->validate_invoice_id($newInvoice->id);
@@ -377,8 +376,7 @@ class InvoiceCrudTest extends TestCase
         $response = $this->post(route('invoices.store'), $pendingInvoiceData);
         // createInvoicesRequestData
         $response->assertStatus(201);
-        $responseJson = $response->json();
-        $invoiceId = $responseJson['invoice_id'];
+        $invoiceId = $response->json('invoice_id');
         $newInvoice = Invoice::find($invoiceId);
 
         $this->validate_invoice_id($newInvoice->id);
@@ -443,8 +441,7 @@ class InvoiceCrudTest extends TestCase
         $response = $this->post(route('invoices.store'), $pendingInvoiceData);
         $response->assertStatus(201);
 
-        $responseJson = $response->json();
-        $invoiceId = $responseJson['invoice_id'];
+        $invoiceId = $response->json('invoice_id');
         $newInvoice = Invoice::find($invoiceId);
 
         $this->validate_invoice_id($newInvoice->id);
@@ -639,9 +636,28 @@ class InvoiceCrudTest extends TestCase
         $response->assertStatus(422);
     }
 
-    public function _test_put_draft_has_no_required_fields_except_status_and_id(): void {
-        // load status first, get 422, then load an id, get 201 (double check 201)
-        $data = [];
+    public function test_put_draft_has_no_required_fields_except_status_and_id(): void {
+        $randomId = Invoice::inRandomOrder()->where('status', 'draft')->first()->id;
+        $requestData = [
+            'status' => 'draft'
+        ];
+        $response = $this->put(route('invoices.update', $randomId), $requestData);
+        $response->assertStatus(422);
+    
+        $requestData = [
+            'id' => $randomId
+        ];
+        $response = $this->put(route('invoices.update', $randomId), $requestData);
+        $response->assertStatus(422);
+    
+        $requestData = [
+            'id' => $randomId,
+            'status' => 'draft'
+        ];
+        $response = $this->put(route('invoices.update', $randomId), $requestData);
+        $response->assertStatus(201);
+    
+        dd(Invoice::find($response->json('invoice_id'))->toJson());
     }
 
     public function _test_put_draft_creates_new_clients_and_addresses_when_other_invoices_use_current_clients_and_addresses(): void {
