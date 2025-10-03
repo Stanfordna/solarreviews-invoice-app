@@ -21,41 +21,55 @@ class InvoiceRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules(): array {
-        $reqIfPending = '|required_if:status,pending';
-        $idRule = [];
-         // POST generates a new id in the controller, PUT/PATCH already have ID
-        if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
-            $idRule = ['id' => 'regex:/^[A-Z]{2}[0-9]{4}$/|required_if:status,pending,paid'];
+    /**
+     * Normalize incoming date strings so month/day are zero-padded (YYYY-MM-DD)
+     * This runs before validation so tests and clients may send non-zero-padded dates like 2021-10-7
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('issue_date') && $this->input('issue_date') !== null && $this->input('issue_date') !== '') {
+            $unpaddedDate = $this->input('issue_date');
+            // attempt to parse using strtotime; if successful, reformat to Y-m-d
+            $dateTime = strtotime($unpaddedDate);
+            if ($dateTime !== false) {
+                $this->merge(['issue_date' => date('Y-m-d', $dateTime)]);
+            }
         }
+    }
 
-        // A request must not PUT a paid invoice
-        $allowedStatus = 'required|string|in:draft,pending,paid';
-        if ($this->isMethod('POST')) {
-            $allowedStatus = 'required|string|in:draft,pending';
+    public function rules(): array {
+        // default values apply to POST requests
+        $requiredIfPending = '|nullable|required_if:status,pending';
+        $allowedStatus = 'required|string|in:draft,pending';
+        $lineItemsRequirement = '|required_if:status,pending';
+        // POST generates a new id but PUT/PATCH must include it
+        $idRule = [];
+        if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
+            $idRule = ['id' => 'regex:/^[A-Z]{2}[0-9]{4}$/|required'];
+            $allowedStatus = 'required|string|in:draft,pending,paid';
         }
 
         $rules = array_merge($idRule, [
-            'issue_date' => 'date|date_format:Y-m-d|nullable' . $reqIfPending,
-            'description' => 'string|max:2000|nullable' . $reqIfPending,
-            'payment_terms' => 'integer|min:0|max:36525|nullable' . $reqIfPending,
-            'client_name' => 'string|max:100|nullable' . $reqIfPending,
-            'client_email' => 'email|max:100|nullable' . $reqIfPending,
+            'issue_date' => 'date|date_format:Y-m-d|nullable' . $requiredIfPending,
+            'description' => 'string|max:2000|nullable' . $requiredIfPending,
+            'payment_terms' => 'integer|min:0|max:36525|nullable' . $requiredIfPending,
+            'client_name' => 'string|max:100|nullable' . $requiredIfPending,
+            'client_email' => 'email|max:100|nullable' . $requiredIfPending,
             'status' => $allowedStatus,
-            'sender_address' => 'array|nullable' . $reqIfPending,
-            'sender_address.street' => 'string|max:100|nullable' . $reqIfPending,
-            'sender_address.city' => 'string|max:100|nullable' . $reqIfPending,
-            'sender_address.postal_code' => 'string|max:100|nullable' . $reqIfPending,
-            'sender_address.country' => 'string|max:100|nullable' . $reqIfPending,
-            'client_address' => 'array|nullable' . $reqIfPending,
-            'client_address.street' => 'string|max:100|nullable' . $reqIfPending,
-            'client_address.city' => 'string|max:100|nullable' . $reqIfPending,
-            'client_address.postal_code' => 'string|max:100|nullable' . $reqIfPending,
-            'client_address.country' => 'string|max:100|nullable' . $reqIfPending,
-            'line_items' => 'array|nullable' . $reqIfPending,
-            'line_items.*.name' => 'string|max:100|nullable' . $reqIfPending,
-            'line_items.*.quantity' => 'integer|min:0|nullable' . $reqIfPending,
-            'line_items.*.price_unit_cents' => 'integer|min:0|nullable' . $reqIfPending,
+            'sender_address' => 'array|nullable' . $requiredIfPending,
+            'sender_address.street' => 'string|max:100|nullable' . $requiredIfPending,
+            'sender_address.city' => 'string|max:100|nullable' . $requiredIfPending,
+            'sender_address.postal_code' => 'string|max:100|nullable' . $requiredIfPending,
+            'sender_address.country' => 'string|max:100|nullable' . $requiredIfPending,
+            'client_address' => 'array|nullable' . $requiredIfPending,
+            'client_address.street' => 'string|max:100|nullable' . $requiredIfPending,
+            'client_address.city' => 'string|max:100|nullable' . $requiredIfPending,
+            'client_address.postal_code' => 'string|max:100|nullable' . $requiredIfPending,
+            'client_address.country' => 'string|max:100|nullable' . $requiredIfPending,
+            'line_items' => 'array' . $lineItemsRequirement,
+            'line_items.*.name' => 'string|max:100|nullable' . $requiredIfPending,
+            'line_items.*.quantity' => 'integer|min:0|nullable' . $requiredIfPending,
+            'line_items.*.price_unit_cents' => 'integer|min:0|nullable' . $requiredIfPending,
         ]);
 
         return $rules;

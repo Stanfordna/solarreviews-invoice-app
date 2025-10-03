@@ -89,6 +89,8 @@ class InvoiceCrudTest extends TestCase
             if (isset($status)) {
                 $data['status'] = $status;
             }
+            unset($data['due_date']);
+            unset($data['total_cents']);
         }
 
         if (isset($client)) {
@@ -619,7 +621,6 @@ class InvoiceCrudTest extends TestCase
         
         // Note- any put pending should always reference first record in table
         // validate_invoice_line_items_and_total
-        // validate_invoice_id
         // createInvoicesRequestData needs an update
     }
 
@@ -643,7 +644,6 @@ class InvoiceCrudTest extends TestCase
         ];
         $response = $this->put(route('invoices.update', $randomId), $requestData);
         $response->assertStatus(422);
-    
         $requestData = [
             'id' => $randomId
         ];
@@ -656,42 +656,218 @@ class InvoiceCrudTest extends TestCase
         ];
         $response = $this->put(route('invoices.update', $randomId), $requestData);
         $response->assertStatus(201);
-    
-        dd(Invoice::find($response->json('invoice_id'))->toJson());
     }
 
-    public function _test_put_draft_creates_new_clients_and_addresses_when_other_invoices_use_current_clients_and_addresses(): void {
+    public function test_put_creates_new_clients_and_addresses_when_other_invoices_use_current_clients_and_addresses(): void {
         // this test makes sure that a client or address is not updated when it would change the content of another invoice
         // find an invoice with a client and address that exists on another invoice.
         // update them to brand new clients and invoices
         // observe that the ids are different, the new id points to an appropriate record, and the old ids still reference the old values 
 
-        // call validate_record_is_latest_copy_in_table
+        $clientIds = Client::has('invoices', '>', '1')->pluck('id');
+        $addressIds = array_merge(
+            Address::has('senderInvoices', '>', '1')->pluck('id')->toArray(),
+            Address::has('clientInvoices', '>', '1')->pluck('id')->toArray()
+        );
+        $invoice = Invoice::inRandomOrder()
+            ->whereIn('client_id', $clientIds)
+            ->where(function ($query) use ($addressIds) {
+                $query->whereIn('client_address_id', $addressIds)
+                    ->orWhereIn('sender_address_id', $addressIds);
+            })->first();
+        
+        $requestData = $this->createInvoicesRequestData(invoice: $invoice);
+        $requestData['client_name'] = 'Scrooge McDuck';
+        $requestData['client_email'] = 'scroogemd@gmail.com';
+        $requestData['sender_address']['street'] = '123 NewStreet';
+        $requestData['sender_address']['city'] = 'NewCity';
+        $requestData['sender_address']['postal_code'] = '12345';
+        $requestData['sender_address']['country'] = 'NewCountry';
+        $requestData['client_address']['street'] = '124 NewStreet';
+        $requestData['client_address']['city'] = 'NewCity';
+        $requestData['client_address']['postal_code'] = '12345';
+        $requestData['client_address']['country'] = 'NewCountry';    //
+        
+        $currentClientid = $invoice->client_id;
+        $currentClientaddressid = $invoice->client_address_id;
+        $currentSenderaddressid = $invoice->sender_address_id;
+        $response = $this->put(route('invoices.update', $invoice->id), $requestData);
+        $response->assertStatus(201);
+        $invoice = Invoice::find($invoice->id);
+
+        $this->assertNotEquals($invoice->client_id, $currentClientid);
+        $this->assertNotEquals($invoice->client_address_id, $currentClientaddressid);
+        $this->assertNotEquals($invoice->sender_address_id, $currentSenderaddressid);
+        $this->validate_record_is_latest_copy_in_table($invoice->client);
+        // we can't say for sure that the new senderAddress or clientAddress is the last in the table,
+        // and I'm too lazy to implement "validate these two records are the latest 2 in their table"
     }
 
-    public function _test_put_draft_updates_current_clients_and_addresses_when_updates_do_not_affect_other_invoices(): void {
-        // this should take an invoice with client/address that do not exist elsewhere and update those records to values that do not exist elsewhere
+    public function test_put_updates_current_clients_and_addresses_when_updates_do_not_affect_other_invoices(): void {
+        // this takes an invoice with client/address that do not exist elsewhere and updates those records to values that do not exist elsewhere
         // id should stay the same, indicating that the same referenced record was updated
+        $clientIds = Client::has('invoices', '=', '1')->pluck('id');
+        $addressIds = Address::has('clientInvoices', '=', '1')->pluck('id');
+        $invoice = Invoice::inRandomOrder()
+            ->whereIn('client_id', $clientIds)
+            ->whereIn('client_address_id', $addressIds)
+            ->first();
+        
+        $requestData = $this->createInvoicesRequestData(invoice: $invoice);
+
+        $requestData['client_name'] = 'Scrooge McDuck';
+        $requestData['client_email'] = 'scroogemd@gmail.com';
+        $requestData['client_address']['street'] = '124 NewStreet';
+        $requestData['client_address']['city'] = 'NewCity';
+        $requestData['client_address']['postal_code'] = '12345';
+        $requestData['client_address']['country'] = 'NewCountry';    //
+        
+        $currentClientid = $invoice->client_id;
+        $currentClientaddressid = $invoice->client_address_id;
+        $response = $this->put(route('invoices.update', $invoice->id), $requestData);
+        $response->assertStatus(201);
+        $invoice = Invoice::find($invoice->id);
+
+        $this->assertEquals($invoice->client_id, $currentClientid);
+        $this->assertDatabaseHas('clients', [
+            'id' => $invoice->client_id,
+            'full_name' => $invoice->client->full_name,
+            'email' => $invoice->client->email
+        ]);
+        $this->assertEquals($invoice->client_address_id, $currentClientaddressid);
+        $this->assertDatabaseHas('addresses', [
+            'id' => $invoice->client_address_id,
+            'street' => $invoice->clientAddress->street,
+            'city' => $invoice->clientAddress->city,
+            'postal_code' => $invoice->clientAddress->postal_code,
+            'country' => $invoice->clientAddress->country
+        ]);
     }
 
-    public function _test_put_pending_creates_new_clients_and_addresses_when_necessary(): void {
-
-        // call validate_record_is_latest_copy_in_table
-    }
-
-    public function _test_put_pending_erases_unused_client_and_address_records(): void {
+    public function test_put_pending_erases_unused_client_and_address_records(): void {
         // this test should update a client/address record not referenced on another invoice
-        // the updated values will match another record, and client/address id's will validate that
+        // the updated values will match another record, and updated client/address id's will validate that
+        $clientIds = Client::has('invoices', '=', '1')->pluck('id');
+        $addressIds = Address::has('clientInvoices', '=', '1')->pluck('id');
+        $invoice = Invoice::inRandomOrder()
+            ->whereIn('client_id', $clientIds)
+            ->whereIn('client_address_id', $addressIds)
+            ->first();
+        
+        
+        $randomOtherClient = Client::where('id', '!=', $invoice->client_id)->first();
+        $randomOtherAddress = Address::where('id', '!=', $invoice->client_address_id)->first();
 
+        $requestData = $this->createInvoicesRequestData(invoice: $invoice);
+
+        $requestData['client_name'] = $randomOtherClient->full_name;
+        $requestData['client_email'] = $randomOtherClient->email;
+        $requestData['client_address']['street'] = $randomOtherAddress->street;
+        $requestData['client_address']['city'] = $randomOtherAddress->city;
+        $requestData['client_address']['postal_code'] = $randomOtherAddress->postal_code;
+        $requestData['client_address']['country'] = $randomOtherAddress->country;
+        
+        $currentClientid = $invoice->client_id;
+        $currentClientaddressid = $invoice->client_address_id;
+        $response = $this->put(route('invoices.update', $invoice->id), $requestData);
+        $response->assertStatus(201);
+        $invoice = Invoice::find($invoice->id);
+
+        $this->assertNotEquals($invoice->client_id, $currentClientid);
+        $this->assertDatabaseMissing('clients', [
+            'id' => $currentClientid
+        ]);
+        $this->assertDatabaseHas('clients', [
+            'id' => $invoice->client_id,
+            'full_name' => $invoice->client->full_name,
+            'email' => $invoice->client->email
+        ]);
+        $this->assertNotEquals($invoice->client_address_id, $currentClientaddressid);
+        $this->assertDatabaseMissing('addresses', [
+            'id' => $currentClientaddressid
+        ]);
+        $this->assertDatabaseHas('addresses', [
+            'id' => $invoice->client_address_id,
+            'street' => $invoice->clientAddress->street,
+            'city' => $invoice->clientAddress->city,
+            'postal_code' => $invoice->clientAddress->postal_code,
+            'country' => $invoice->clientAddress->country
+        ]);
         // call validate_record_is_oldest_copy_in_table
     }
 
-    public function _test_put_pending_requires_all_fields(): void {
-        // iterate through as in post
+    public function test_put_pending_requires_all_fields(): void {
+        $randomInvoice = Invoice::inRandomOrder()->where('status', '!=', 'paid')->first();
+        $completeRequestData = $this->createInvoicesRequestData(invoice: $randomInvoice);
+        $requestFields = array_keys($completeRequestData);
+        foreach ($requestFields as $field) {
+            // test unsetting nested keys
+            if (is_array($completeRequestData[$field]) && array_keys($completeRequestData[$field]) !== range(0, count($completeRequestData[$field]) - 1)) {
+                // if array keys are named (it's an associative array), we want to test unsetting
+                // each of them to make sure all inner fields are required for pending invoices.
+                $innerArray = $completeRequestData[$field];
+
+                foreach (array_keys($innerArray) as $innerField) {
+                    // make a fresh copy of the request data to test unsetting this field
+                    $tempRequestData = $this->createInvoicesRequestData(id: $randomInvoice->id, status: 'pending');
+
+                    unset($tempRequestData[$field][$innerField]);
+                    $response = $this->put(route('invoices.update', $randomInvoice->id), $tempRequestData);
+                    $response->assertStatus(422);
+                }
+
+            } else if (is_array($completeRequestData[$field]) && is_array($completeRequestData[$field][0])) {
+                // if array keys are numbered (a "regular" array), we make sure the 0th element is also an array and we want to test 
+                // unsetting each of that element's inner keys to make sure all inner fields are required for pending invoices.
+                $innerArray = $completeRequestData[$field][0];
+                 if (isset($innerArray['id'])) {
+                    unset($innerArray['id']); // not a part of a normal request
+                }
+                if (isset($innerArray['price_total_cents'])) {
+                    unset($innerArray['price_total_cents']); // not a part of a normal request
+                }
+
+                foreach (array_keys($innerArray) as $innerField) {
+                    // make a fresh copy of the request data to test unsetting this field
+                    $tempRequestData = $this->createInvoicesRequestData(id: $randomInvoice->id, status: 'pending');
+
+                    unset($tempRequestData[$field][0][$innerField]);
+                    $response = $this->put(route('invoices.update', $randomInvoice->id), $tempRequestData);
+                    $response->assertStatus(422);
+                }
+            }
+
+            // make a fresh copy of the request data to test unsetting this field
+            $tempRequestData = $this->createInvoicesRequestData(id: $randomInvoice->id, status: 'pending');
+            unset($tempRequestData[$field]);
+            $response = $this->put(route('invoices.update', $randomInvoice->id), $tempRequestData);
+            $response->assertStatus(422);
+        }
+
+        // finally, show that post accepts a complete form request.
+        $response = $this->put(route('invoices.update', $randomInvoice->id), $completeRequestData);
+        $response->assertStatus(201);
     }
 
-    public function _test_put_paid_has_no_required_fields_except_status_and_id(): void {
-
+    public function test_put_paid_has_no_required_fields_except_status_and_id(): void {
+        $randomPendingId = Invoice::inRandomOrder()->where('status', 'pending')->first()->id;
+        $requestData = [
+            'status' => 'paid'
+        ];
+        $response = $this->put(route('invoices.update', $randomPendingId), $requestData);
+        $response->assertStatus(422);
+        $requestData = [
+            'id' => $randomPendingId
+        ];
+        $response = $this->put(route('invoices.update', $randomPendingId), $requestData);
+        $response->assertStatus(422);
+    
+        $requestData = [
+            'id' => $randomPendingId,
+            'status' => 'paid'
+        ];
+        $response = $this->put(route('invoices.update', $randomPendingId), $requestData);
+        $response->assertStatus(201);
     }
 
     /*************************************************************************************

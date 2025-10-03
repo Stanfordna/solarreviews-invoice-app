@@ -81,7 +81,13 @@ class InvoiceController extends Controller
         $invoiceTotal = 0;
         if (!isset($data['line_items'])) $data['line_items'] = [];
         foreach ($data['line_items'] as $lineItem) {
-            $lineItem['price_total_cents'] = $lineItem['price_unit_cents'] * $lineItem['quantity'];
+            if (isset($lineItem['price_unit_cents']) && isset($lineItem['quantity'])) {
+                $lineItem['price_total_cents'] = $lineItem['price_unit_cents'] * $lineItem['quantity'];
+            } else {
+                $lineItem['price_unit_cents'] = 0;
+                $lineItem['quantity'] = 0;
+                $lineItem['price_total_cents'] = 0;
+            }
             $invoiceTotal += $lineItem['price_total_cents'];
         }
 
@@ -106,14 +112,15 @@ class InvoiceController extends Controller
         $newInvoice = Invoice::create($newInvoiceData);
 
         // create line items using new invoice id for foreign key
+        if (!isset($data['line_items'])) $data['line_items'] = [];
         foreach ($data['line_items'] as $lineItem) {
             // for a post request we are making all new line items, not updating or removing existing ones.
             LineItem::create([
                 'invoice_id' => $newInvoice->id,
-                'name' => $lineItem['name'],
-                'quantity' => $lineItem['quantity'],
-                'price_unit_cents' => $lineItem['price_unit_cents'],
-                'price_total_cents' => $lineItem['price_unit_cents'] * $lineItem['quantity']
+                'name' => ($lineItem['name'] ?? ""),
+                'quantity' => ($lineItem['quantity'] ?? null),
+                'price_unit_cents' => ($lineItem['price_unit_cents'] ?? null),
+                'price_total_cents' => (($lineItem['price_unit_cents'] ?? 0) * ($lineItem['quantity'] ?? 0))
             ]);
         }
 
@@ -138,121 +145,217 @@ class InvoiceController extends Controller
 
     /**
      * Update the specified resource in storage.
-     * "Edit" button plus any save should hit this endpoint.
-     * We always write data even if it does not change, 
+     * "Edit" button plus any save should hit this endpoint. 
      */
     public function update(InvoiceRequest $request, Invoice $invoice)
     {
         $invoiceData = $request->all();
-        $invoiceId = $invoice->id;
+
+        if (($invoice->status == "pending" || $invoice->status == "paid") && $invoiceData['status'] == 'draft') {
+            return response()->json([
+                'message' => 'Invoice with current status "Pending" or "Paid" cannot be changed to "Draft".',
+                'invoice_id' => $invoice->id
+            ], 422); // 201 Created status code
+        }
 
         // first update values belonging to the invoices table, not foreign relations
-        $invoice->issue_date = $invoiceData['issue_date'];
-        $invoice->due_date = $invoiceData['due_date'];
-        $invoice->description = $invoiceData['description'];
-        $invoice->payment_terms = $invoiceData['payment_terms'];
-        $invoice->status = $invoiceData['status'];
-        $invoice->total_cents = $invoiceData['total_cents'];
+        $invoice->issue_date = $invoiceData['issue_date'] ?? "";
+        $invoice->due_date = $invoiceData['due_date'] ?? "";
+        $invoice->description = $invoiceData['description'] ?? "";
+        $invoice->payment_terms = $invoiceData['payment_terms'] ?? "";
+        $invoice->status = $invoiceData['status'] ?? "";
+        $invoice->total_cents = $invoiceData['total_cents'] ?? "";
 
         // get invoice client and addresses
         $currentClient = $invoice->client;
         $currentClientAddress = $invoice->clientAddress;
         $currentSenderAddress = $invoice->senderAddress;
 
-        // First consideration: did anything about your client and addresses change?
+
+        // Consider changed if any relevant field differs (use OR, not AND)
         $clientChanged = (
-                $invoice->client->full_name != $invoiceData['client_name'] &&
-                $invoice->client->email != $invoiceData['client_email']
-            );
+            ($invoice->client->full_name ?? "") !== ($invoiceData['client_name'] ?? "") ||
+            ($invoice->client->email ?? "") !== ($invoiceData['client_email'] ?? "")
+        );
+
         $clientAddressChanged = (
-                $invoice->clientAddress->street != $invoiceData['client_address']['street'] &&
-                $invoice->clientAddress->city != $invoiceData['client_address']['city'] &&
-                $invoice->clientAddress->postal_code != $invoiceData['client_address']['postal_code'] &&
-                $invoice->clientAddress->country != $invoiceData['client_address']['country']
-            );
+            ($invoice->clientAddress->street ?? "") !== ($invoiceData['client_address']['street'] ?? "") ||
+            ($invoice->clientAddress->city ?? "") !== ($invoiceData['client_address']['city'] ?? "") ||
+            ($invoice->clientAddress->postal_code ?? "") !== ($invoiceData['client_address']['postal_code'] ?? "") ||
+            ($invoice->clientAddress->country ?? "") !== ($invoiceData['client_address']['country'] ?? "")
+        );
+
         $senderAddressChanged = (
-                $invoice->senderAddress->street != $invoiceData['sender_address']['street'] &&
-                $invoice->senderAddress->city != $invoiceData['sender_address']['city'] &&
-                $invoice->senderAddress->postal_code != $invoiceData['sender_address']['postal_code'] &&
-                $invoice->senderAddress->country != $invoiceData['sender_address']['country']
-            );
+            ($invoice->senderAddress->street ?? "") !== ($invoiceData['sender_address']['street'] ?? "") ||
+            ($invoice->senderAddress->city ?? "") !== ($invoiceData['sender_address']['city'] ?? "") ||
+            ($invoice->senderAddress->postal_code ?? "") !== ($invoiceData['sender_address']['postal_code'] ?? "") ||
+            ($invoice->senderAddress->country ?? "") !== ($invoiceData['sender_address']['country'] ?? "")
+        );
 
-        // Second consideration: do clients and addresses already exist elsewhere to reference in the invoice?
+        // Clients/Addresses that changed but already exist elsewhere should be referenced.
         $existingClient = 
-            Client::where('full_name', $invoiceData['client_name'])
-            ->where('email', $invoiceData['client_email'])
+            Client::where('full_name', ($invoiceData['client_name'] ?? ""))
+            ->where('email', ($invoiceData['client_email'] ?? ""))
+            ->where('id', '!=', $invoice->client_id)
             ->first();
-        $updatedClientExists = $existingClient instanceof Client; // boolean flag
+        $updatedClientExists = $existingClient instanceof Client;
 
+        // look for an existing address that matches the incoming client address (excluding current)
         $existingClientAddress = 
-            Address::where('street', $invoiceData['sender_address']['street'])
-            ->where('city', $invoiceData['sender_address']['city'])
-            ->where('postal_code', $invoiceData['sender_address']['postal_code'])
-            ->where('country', $invoiceData['sender_address']['country'])
+            Address::where('street', ($invoiceData['client_address']['street'] ?? ""))
+            ->where('city', ($invoiceData['client_address']['city'] ?? ""))
+            ->where('postal_code', ($invoiceData['client_address']['postal_code'] ?? ""))
+            ->where('country', ($invoiceData['client_address']['country'] ?? ""))
+            ->where('id', '!=', $invoice->client_address_id)
             ->first();
-        $updatedClientAddressExists = $existingClientAddress instanceof Address; // boolean flag
+        $updatedClientAddressExists = $existingClientAddress instanceof Address;
 
+        // look for an existing address that matches the incoming sender address (excluding current)
         $existingSenderAddress = 
-            Address::where('street', $invoiceData['client_address']['street'])
-            ->where('city', $invoiceData['client_address']['city'])
-            ->where('postal_code', $invoiceData['client_address']['postal_code'])
-            ->where('country', $invoiceData['client_address']['country'])
+            Address::where('street', ($invoiceData['sender_address']['street'] ?? ""))
+            ->where('city', ($invoiceData['sender_address']['city'] ?? ""))
+            ->where('postal_code', ($invoiceData['sender_address']['postal_code'] ?? ""))
+            ->where('country', ($invoiceData['sender_address']['country'] ?? ""))
+            ->where('id', '!=', $invoice->sender_address_id)
             ->first();
-        $updatedSenderAddressExists = $existingSenderAddress instanceof Address; // boolean flag
+        $updatedSenderAddressExists = $existingSenderAddress instanceof Address;
 
-        // Third consideration: should the previous client or addresses records be deleted?
+        // Clients/Addresses that changed, do not exist elsewhere, and appear on another invoice need to be created.
+        $createNewClient = (
+            $currentClient->invoices()->count() > 1 && $clientChanged && !$updatedClientExists
+        );
+        $createNewClientAddress = (
+            $currentClientAddress->clientInvoices()->count() > 1 && $clientAddressChanged && !$updatedClientAddressExists
+        );
+        $createNewSenderAddress = (
+            $currentSenderAddress->senderInvoices()->count() > 1 && $senderAddressChanged && !$updatedSenderAddressExists
+        );
+        //  Clients/Addresses that changed, do not exist elsewhere, but appear on no other invoices need to be updated.
+        $updateCurrentClient = (
+            $currentClient->invoices()->count() == 1 && $clientChanged && !$updatedClientExists
+        );
+        $updateCurrentClientAddress = (
+            $currentClientAddress->clientInvoices()->count() == 1 && $clientAddressChanged && !$updatedClientAddressExists
+        );
+        $updateCurrentSenderAddress = (
+            $currentSenderAddress->senderInvoices()->count() == 1 && $senderAddressChanged && !$updatedSenderAddressExists
+        );
+        // Clients/Addresses that no longer appear on an invoice should be removed.
         $deleteCurrentClient = (
-            $currentClient->invoices()->count() == 1 && $clientChanged
+            $currentClient->invoices()->count() == 1 && $updatedClientExists
         );
         $deleteCurrentClientAddress = (
-            $currentClientAddress->clientInvoices()->count() == 1 && $clientAddressChanged
+            $currentClientAddress->clientInvoices()->count() == 1 && $updatedClientAddressExists
         );
         $deleteCurrentSenderAddress = (
-            $currentSenderAddress->senderInvoices()->count() == 1 && $senderAddressChanged
+            $currentSenderAddress->senderInvoices()->count() == 1 && $updatedSenderAddressExists
         );
 
+        // dump($createNewClient);
+        // dump($createNewClientAddress);
+        // dump($createNewSenderAddress);
+        // dump($updateCurrentClient);
+        // dump($updateCurrentClientAddress);
+        // dump($updateCurrentSenderAddress);
+        // dump($deleteCurrentClient);
+        // dump($deleteCurrentClientAddress);
+        // dump($deleteCurrentSenderAddress);
+        // dump($updatedClientExists);
+        // dump($updatedClientAddressExists);
+        // dump($updatedSenderAddressExists);
+
+        
         if ($updatedClientExists) {
-            // make invoice reference existing client
-            $invoice->client = $existingClient->id;
+            $invoice->client()->associate($existingClient);
         }
         if ($updatedClientAddressExists) {
-            // make invoice reference existing clientaddress
-            $invoice->clientAddress = $existingClientAddress->id;
+            $invoice->clientAddress()->associate($existingClientAddress);
         }
         if ($updatedSenderAddressExists) {
-            // make invoice reference existing clientaddress
-            $invoice->senderAddress = $existingsenderAddress->id;
+            $invoice->senderAddress()->associate($existingSenderAddress);
         }
-        // TODO: Finish
-            
 
-            $invoice->client->full_name = $invoiceData['client_name'];
-            $invoice->client->email = $invoiceData['client_email'];
-            $invoice->senderAddress->street = $invoiceData['sender_address']['street'];
-            $invoice->senderAddress->city = $invoiceData['sender_address']['city'];
-            $invoice->senderAddress->postal_code = $invoiceData['sender_address']['postal_code'];
-            $invoice->senderAddress->country = $invoiceData['sender_address']['country'];
-            $invoice->clientAddress->street = $invoiceData['client_address']['street'];
-            $invoice->clientAddress->city = $invoiceData['client_address']['city'];
-            $invoice->clientAddress->postal_code = $invoiceData['client_address']['postal_code'];
-            $invoice->clientAddress->country = $invoiceData['client_address']['country'];
+        if ($createNewClient) {
+            $newClient = Client::create([
+                'full_name' => ($invoiceData['client_name'] ?? ""),
+                'email' => ($invoiceData['client_email'] ?? "")
+            ]);
+            // associate the newly created client to the invoice
+            $invoice->client()->associate($newClient);
         }
-        // record current_client_id and address ids
-        // if saving a pending, attempt to find first client match and attempt to find first address match of request info. call them "singleton_client_id" etc.
-        // if match(es) is(are) found, adjust invoice to point to existing records. No update necessary. this may be the currently referenced record
-        //     else update current client and/or address records
-        // save invoice to db
-        // if singleton_id != current_id
-        // if old client id has no invoices, delete. Same for addresses.
+        if ($createNewClientAddress) {
+            $newClientAddress = Address::create([
+                'street' => ($invoiceData['client_address']['street'] ?? ""),
+                'city' => ($invoiceData['client_address']['city'] ?? ""),
+                'postal_code' => ($invoiceData['client_address']['postal_code'] ?? ""),
+                'country' => ($invoiceData['client_address']['country'] ?? "")
+            ]);
+            // associate as the invoice's client address
+            $invoice->clientAddress()->associate($newClientAddress);
+        }
 
+        if ($createNewSenderAddress) {
+            $newSenderAddress = Address::create([
+                'street' => ($invoiceData['sender_address']['street'] ?? ""),
+                'city' => ($invoiceData['sender_address']['city'] ?? ""),
+                'postal_code' => ($invoiceData['sender_address']['postal_code'] ?? ""),
+                'country' => ($invoiceData['sender_address']['country'] ?? "")
+            ]);
+            // associate the newly created sender address
+            $invoice->senderAddress()->associate($newSenderAddress);
+        }
+
+        if ($updateCurrentClient) {
+            // debug statements removed
+            $invoice->client->full_name = ($invoiceData['client_name'] ?? "");
+            $invoice->client->email = ($invoiceData['client_email'] ?? "");
+        }
+        if ($updateCurrentClientAddress) {
+            $invoice->clientAddress->street = ($invoiceData['client_address']['street'] ?? "");
+            $invoice->clientAddress->city = ($invoiceData['client_address']['city'] ?? "");
+            $invoice->clientAddress->postal_code = ($invoiceData['client_address']['postal_code'] ?? "");
+            $invoice->clientAddress->country = ($invoiceData['client_address']['country'] ?? "");
+
+        }
+        if ($updateCurrentSenderAddress) {
+            $invoice->senderAddress->street = ($invoiceData['sender_address']['street'] ?? "");
+            $invoice->senderAddress->city = ($invoiceData['sender_address']['city'] ?? "");
+            $invoice->senderAddress->postal_code = ($invoiceData['sender_address']['postal_code'] ?? "");
+            $invoice->senderAddress->country = ($invoiceData['sender_address']['country'] ?? "");
+        }
+
+        if ($deleteCurrentClient) {
+            $currentClient->delete();
+        }
+        if ($deleteCurrentClientAddress) {
+            $currentClientAddress->delete();
+        }
+        if ($deleteCurrentSenderAddress) {
+            $currentSenderAddress->delete();
+        }
         // overwrite all line items - just remove and create new ones
+        $invoice->lineItems()->delete();
 
+        // create line items using new invoice id for foreign key
+        if (!isset($invoiceData['line_items'])) $invoiceData['line_items'] = [];
+        foreach ($invoiceData['line_items'] as $lineItem) {
+            // for a post request we are making all new line items, not updating or removing existing ones.
+            LineItem::create([
+                'invoice_id' => $invoice->id,
+                'name' => ($lineItem['name'] ?? ""),
+                'quantity' => ($lineItem['quantity'] ?? null),
+                'price_unit_cents' => ($lineItem['price_unit_cents'] ?? null),
+                'price_total_cents' => ($lineItem['price_unit_cents'] ?? 0) * ($lineItem['quantity'] ?? 0)
+            ]);
+        }
 
+        $invoice->save();
         // Return the invoice ID in the response
+
         return response()->json([
-            'message' => 'Invoice created successfully',
-            //'invoice_id' => $newInvoice->id,
-        ], 422); // 201 Created status code
+            'message' => 'Invoice successfully updated',
+            'invoice_id' => $invoice->id
+        ], 201); // 201 Created status code
     }
 
     /**
