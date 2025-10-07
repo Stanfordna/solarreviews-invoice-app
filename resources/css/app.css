@@ -1,11 +1,178 @@
-@import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
+:root {
+    font-family: "League Spartan", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: normal;
+    font-style: normal;
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --light-app-background: #f8f8f8;
+    --dark-app-background: #141625;
+    --color-app-background: var(--dark-app-background);
+
+    --light-header-background: #252945;
+    --dark-header-background: #1e2139;
+    --color-header-background: var(--dark-header-background);
+
+    --light-component-background: var(--light-app-background);
+    --dark-component-background: var(--dark-app-background);
+    --color-component-background: var(--dark-component-background);
+    
+    --light-invoice-total-background: var(--light-app-background);
+    --dark-invoice-total-background: #0c0e16;
+    --color-invoice-total-background: var(--dark-invoice-total-background);
+
+    --light-element-border-regular: ;
+    --light-element-border-accent: var(--button);
+    --dark-element-border-regular: var(--light-header-background);
+    --dark-element-border-accent: var(--dark-element-border-regular);
+
+    /* purple buttons same for all themes*/
+    --color-button: #7c5dfa;
+    --color-button-hover: #9277ff;
+    --color-button-text: var(--color-dark-theme-text);
+
+    /* delete button same for all themes */
+    --color-delete: #ec575f;
+    --color-delete-hover: #ff9796;
+
+    --light-save-as-draft: #888eb0;
+    --dark-save-as-draft: #888eb0;
+    --color-save-as-draft: #888eb0;
+
+    --light-save-as-draft-hover: #7e88c3;
+    --dark-save-as-draft-hover: #7e88c3;
+    --color-save-as-draft-hover: #7e88c3;
+
+    /* Status text/background in "all invoices" list */
+    --status-background-opacity: 0.8;
+
+    --light-draft-status-text: #141625;
+    --light-draft-status-background: var(--light-app-background);
+    --dark-draft-status-text: #dfe3fa;
+    --dark-draft-status-background: rgba(var(dark-draft-status-text), var(--status-background-opacity));
+    --color-draft-status-text: var(--dark-draft-status-text);
+    --color-draft-status-background: var(--dark-draft-status-background);
+
+    --light-pending-status-text: #ff9200;
+    --light-pending-status-background: var(--light-app-background);
+    --dark-pending-status-text: #var(--light-pending-status-text);
+    --dark-pending-status-background: rgba(var(dark-pending-status-text), var(--status-background-opacity));
+    --color-pending-status-text: var(--dark-pending-status-text);
+    --color-pending-status-background: var(--dark-pending-status-background);
+
+    --light-paid-status-text: #54baa4;
+    --light-paid-status-background: var(--light-app-background);
+    --dark-paid-status-text: var(--light-paid-status-text);
+    --dark-paid-status-background: rgba(var(dark-paid-status-text), var(--status-background-opacity));
+    --color-paid-status-text: var(--dark-paid-status-text);
+    --color-paid-status-background: var(--dark-paid-status-background);
+
+    --color-discard: #f8f8f8;
+    --color-discard-hover: var(--color-discard);
+    --color-discard-text: #888eb0;
+
+    --light-theme-text: #141625;
+    --light-theme-text-alt: #888eb0;
+    --dark-theme-text: #dfe3fa;
+    --dark-theme-text-alt: #dfe3fa;
+    --color-text: var(--dark-theme-text);
+    --color-text-alt: var(--dark-theme-text-alt);
+    --color-text-highlight: var(--color-button);
+
+    /* borders for certain form fields */
+    --light-color-accent: var(--color-button);
+    --dark-color-accent: var(--light-header-background);
+    --color-accent: var(--dark-color-accent);
+
+    --color-logo-primary: var(--color-button);
+    --color-logo-secondary: var(--color-button-hover);
+
 }
+
+html, body {
+    background-color: var(--color-app-background);
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    height: 100vh;
+    width: 7rem;
+    border-radius: 0 2rem 2rem 0;
+    display: flex;
+    flex-flow: column nowrap;
+    background: var(--color-header-background);
+}
+
+app-logo {
+    aspect-ratio: 1 / 1;
+    border-radius: 0 2rem 2rem 0;
+    background: var(--color-logo-primary);
+    flex: 0 0 0%;
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+app-logo-wrapper {
+    display: block;
+    width: 100%;
+    background: var(--color-logo-secondary);
+    border-radius: 2rem 0 2rem 0;
+    aspect-ratio: 2 / 1;
+    align-self: flex-end;
+}
+app-logo-wrapper > img {
+    display: block;
+    width: 3rem;
+    height: auto; 
+    margin: -1.5rem auto auto auto;
+}
+
+theme-toggle {
+
+}
+
+
+
+h1 {
+    font-weight: bold;
+    font-size: 32px;
+    line-height: 36px;
+    letter-spacing: -1px;
+}
+
+h2 {
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 22px;
+    letter-spacing: -0.63px;
+}
+
+h3 {
+    font-weight: bold;
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: -0.8px;
+}
+
+h4 {
+    font-weight: bold;
+    font-size: 12px;
+    line-height: 15px;
+    letter-spacing: -0.25px;
+}
+
+body, .body-text {
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 15px;
+    letter-spacing: -0.25px;
+}
+
+label, .body-text-alt {
+    font-weight: bold;
+    font-size: 11px;
+    line-height: 18px;
+    letter-spacing: -0.23px;
+}
+
