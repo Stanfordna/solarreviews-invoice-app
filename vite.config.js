@@ -17,6 +17,35 @@ export default defineConfig({
                     base: null,
                     includeAbsolute: false,
                 },
+                // Treat specific kebab-case tags as custom elements so the SFC
+                // compiler does not attempt to resolve them as Vue components.
+                // This mirrors the customTags list used in your runtime code.
+                compilerOptions: {
+                    isCustomElement: (tag) => {
+                        const customTags = [
+                            'heading-count',
+                            'chosen-status',
+                            'invoice-status',
+                            'status-options',
+                            'status-select',
+                            'invoices-filter',
+                            'add-icon',
+                            'new-invoice-button',
+                            'invoices-list-header',
+                            'invoices-list-body',
+                            'no-invoices',
+                            'all-invoices',
+                            'invoice-summary',
+                            'status-wrapper',
+                            'invoice-id',
+                            'due-date',
+                            'client-name',
+                            'total-cents',
+                            'invoice-status'
+                        ];
+                        return customTags.includes(tag);
+                    }
+                }
             },
         }),
     ],

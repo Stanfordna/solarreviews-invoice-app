@@ -1,0 +1,208 @@
+invoices-list-header {
+    display: flex;
+    flex-flow: row nowrap;
+    width: 100%;
+    justify-items: baseline;
+    align-items: center;
+}
+
+heading-count {
+    flex: 1 0 0;
+}
+
+invoices-filter,
+new-invoice-button {
+    height: fit-content;
+    padding: 0.5rem;
+}
+
+invoices-filter {
+    margin-right: 1rem;
+    display: flex;
+    flex-flow: row nowrap;
+}
+
+invoices-filter:hover {
+    margin-right: 1rem;
+    filter: brightness(150%);
+}
+
+invoices-filter > img {
+    display: block;
+    align-self: center;
+    margin-left: 0.5rem;
+    height: 7px;
+    width: 11px;
+}
+
+status-select {
+    justify-self: baseline;
+    margin-top: 3px;
+    display: flex;
+    flex-flow: column nowrap;
+}
+
+chosen-status {
+  /* TODO: get it to stay */
+}
+status-options {
+    display: flex;
+    flex-flow: column nowrap;
+}
+
+status-options.hidden {
+    display: none;
+}
+
+
+new-invoice-button > h4 {
+    padding: 0.25rem 1rem 0.25rem 0;
+}
+
+new-invoice-button {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-items: center;
+    align-items: center;
+    background-color: var(--color-button);
+    color: var(--color-button-text);
+    border-radius: 2rem;
+}
+add-icon {
+    background-color: var(--color-button-text);
+    aspect-ratio: 1 / 1;
+    flex: 0 0 0;
+    display: flex;
+    height: 2.25rem;
+    margin-right: 0.75rem;
+    border-radius: 1.25rem;
+    align-items: center;
+}
+
+add-icon > img {
+    height: 1rem;
+    margin: auto;
+}
+
+new-invoice-button:hover {
+    background-color: var(--color-button-hover);
+}
+
+all-invoices {
+    margin: 5rem auto;
+    width: 750px;
+    max-width: inherit;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: flex-start;
+}
+
+invoice-summary{
+    margin-top: 0.75rem;
+} 
+
+status-wrapper {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    background-color: var(--color-component-background);
+    padding: 0.25rem;
+    border-radius: 0.5rem;
+}
+
+invoice-id,
+due-date,
+client-name,
+total-cents,
+invoice-status,
+status-wrapper > img {
+    padding: 0.5rem;
+    margin: 0.5rem;
+}
+
+invoice-id,
+due-date,
+client-name {
+    justify-self: left;
+}
+
+invoice-id::before {
+    content: '#';
+    font-weight: 500;
+    font-color: var(--color-accent);
+}
+
+invoice-id {
+    font-weight: bold;
+    flex: 0.25 0 4rem;
+}
+
+due-date {
+    flex: 0.25 0 7rem;
+}
+
+due-date:before {
+    content: 'Due ';
+}
+
+client-name {
+    flex: 1 0 9rem;
+    margin-right: auto;
+}
+
+total-cents,
+invoice-status {
+    justify-self: right;
+
+}
+
+total-cents {
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 22px;
+    letter-spacing: -0.63px;
+    margin-left: auto;
+    margin-right: 2rem;
+}
+total-cents:before {
+    content: '£';
+}
+
+invoice-status {
+    justify-self: right;
+    flex: 0.25 0 4rem;
+    text-align: center;
+    border-radius: 0.5rem;
+}
+invoice-status.draft {
+    color: var(--color-draft-status-text);
+    background-color: var(--color-draft-status-background);
+}
+invoice-status.pending {
+    color: var(--color-pending-status-text);
+    background-color: var(--color-pending-status-background);
+}
+invoice-status.paid {
+    color: var(--color-paid-status-text);
+    background-color: var(--color-paid-status-background);
+}
+
+status-wrapper > img {
+    flex: 0 0 7px;
+}
+
+no-invoices {
+    margin: 5rem;
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: center;
+}
+no-invoices > h2 {
+    margin-top: 3rem;
+}
+no-invoices > p {
+    width: 15rem;
+    text-align: center;
+}

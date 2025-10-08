@@ -17,17 +17,40 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
 
+    
+    <script defer src="{{ asset('js/theme.js') }}"></script>
+    <script defer src="{{ asset('js/background.js') }}"></script>
 </head>
 
 <body>
     <header>
         <app-logo>
-            <app-logo-wrapper>
+            <app-logo-inset>
                 <img src="{{ asset('icons/logo.svg') }}">
                 </img>
-            </app-logo-wrapper>
+            </app-logo-inset>
         </app-logo>
+        <header-spacer></header-spacer>
+        <light-theme-toggle>
+            <img src="{{ asset('icons/icon-sun.svg') }}" onClick="setLightTheme()">
+            </img>
+        </light-theme-toggle>
+        <dark-theme-toggle>
+            <img src="{{ asset('icons/icon-moon.svg') }}" onClick="setDarkTheme()">
+            </img>
+        </dark-theme-toggle>
+        <profile-icon>
+            <img src="{{ asset('icons/image-avatar.jpg') }}">
+            </img>
+        </profile-icon>
     </header>
+    <invoices-list>
+    </invoices-list>
+    <invoice-view>
+    </invoice-view>
+    {{-- <background-overlay></background-overlay> --}}
+    <invoice-edit>
+    </invoice-edit>
 </body>
 
 </html>

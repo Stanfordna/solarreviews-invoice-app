@@ -1,23 +1,23 @@
-/**
- * First we will load all of this project's JavaScript dependencies which
- * includes Vue and other libraries. It is a great starting point when
- * building robust, powerful web applications using Vue and Laravel.
- */
-
 import './bootstrap';
 import { createApp } from 'vue';
-import App from './App.vue';
+import InvoicesListComponent from './components/InvoicesListComponent.vue'
+import InvoiceViewComponent from './components/InvoiceViewComponent.vue'
+import InvoiceEditComponent from './components/InvoiceEditComponent.vue'
 
-/**
- * Next, we will create a fresh Vue application instance. You may then begin
- * registering components with the application instance so they are ready
- * to use in your application's views. An example is included for you.
- */
+// import App from './App.vue';
+const eventBus = createApp({});
 
-const app = createApp({});
+const invoicesList = createApp(InvoicesListComponent);
+const invoiceView = createApp(InvoiceViewComponent);
+const invoiceEdit = createApp(InvoiceEditComponent);
 
-import ExampleComponent from './components/ExampleComponent.vue';
-app.component('example-component', ExampleComponent);
+invoicesList.mount('invoices-list');
+invoiceView.mount('invoice-view');
+invoiceEdit.mount('invoice-edit');
+
+
+// import ExampleComponent from './components/ExampleComponent.vue';
+// app.component('example-component', ExampleComponent);
 
 /**
  * The following block of code may be used to automatically register your

@@ -14,56 +14,53 @@
     --color-header-background: var(--dark-header-background);
 
     --light-component-background: var(--light-app-background);
-    --dark-component-background: var(--dark-app-background);
+    --dark-component-background: var(--dark-header-background);
     --color-component-background: var(--dark-component-background);
     
     --light-invoice-total-background: var(--light-app-background);
     --dark-invoice-total-background: #0c0e16;
     --color-invoice-total-background: var(--dark-invoice-total-background);
 
-    --light-element-border-regular: ;
-    --light-element-border-accent: var(--button);
-    --dark-element-border-regular: var(--light-header-background);
-    --dark-element-border-accent: var(--dark-element-border-regular);
-
-    /* purple buttons same for all themes*/
-    --color-button: #7c5dfa;
-    --color-button-hover: #9277ff;
-    --color-button-text: var(--color-dark-theme-text);
+    --light-component-border-regular: var(--light-app-background);
+    --light-component-border-accent: var(#7c5dfa);
+    --dark-component-border-regular: var(--light-header-background);
+    --dark-component-border-accent: var(--dark-component-border-regular);
+    --color-component-border-regular: var(--dark-component-border-regular);
+    --color-component-border-accent: var(--dark-component-border-accent);
 
     /* delete button same for all themes */
     --color-delete: #ec575f;
     --color-delete-hover: #ff9796;
 
     --light-save-as-draft: #888eb0;
-    --dark-save-as-draft: #888eb0;
-    --color-save-as-draft: #888eb0;
+    --dark-save-as-draft: var(--light-save-as-draft);
+    --color-save-as-draft: var(--dark-save-as-draft);
 
     --light-save-as-draft-hover: #7e88c3;
-    --dark-save-as-draft-hover: #7e88c3;
-    --color-save-as-draft-hover: #7e88c3;
+    --dark-save-as-draft-hover: var(--light-save-as-draft-hover);
+    --color-save-as-draft-hover: var(--dark-save-as-draft-hover);
 
     /* Status text/background in "all invoices" list */
-    --status-background-opacity: 0.8;
+    --status-background-opacity: 0.3;
 
     --light-draft-status-text: #141625;
-    --light-draft-status-background: var(--light-app-background);
+	--light-draft-status-background: var(--light-app-background);
     --dark-draft-status-text: #dfe3fa;
-    --dark-draft-status-background: rgba(var(dark-draft-status-text), var(--status-background-opacity));
+    --dark-draft-status-background: #dfe3fa10;
     --color-draft-status-text: var(--dark-draft-status-text);
     --color-draft-status-background: var(--dark-draft-status-background);
 
     --light-pending-status-text: #ff9200;
     --light-pending-status-background: var(--light-app-background);
-    --dark-pending-status-text: #var(--light-pending-status-text);
-    --dark-pending-status-background: rgba(var(dark-pending-status-text), var(--status-background-opacity));
+    --dark-pending-status-text: var(--light-pending-status-text);
+    --dark-pending-status-background: #ff920010;
     --color-pending-status-text: var(--dark-pending-status-text);
     --color-pending-status-background: var(--dark-pending-status-background);
 
     --light-paid-status-text: #54baa4;
     --light-paid-status-background: var(--light-app-background);
     --dark-paid-status-text: var(--light-paid-status-text);
-    --dark-paid-status-background: rgba(var(dark-paid-status-text), var(--status-background-opacity));
+    --dark-paid-status-background: #54baa410;
     --color-paid-status-text: var(--dark-paid-status-text);
     --color-paid-status-background: var(--dark-paid-status-background);
 
@@ -78,6 +75,11 @@
     --color-text: var(--dark-theme-text);
     --color-text-alt: var(--dark-theme-text-alt);
     --color-text-highlight: var(--color-button);
+    
+    /* purple buttons same for all themes*/
+    --color-button: #7c5dfa;
+    --color-button-hover: #9277ff;
+    --color-button-text: var(--dark-theme-text);
 
     /* borders for certain form fields */
     --light-color-accent: var(--color-button);
@@ -96,24 +98,27 @@ html, body {
 }
 
 header {
+    position: absolute;
     height: 100vh;
     width: 7rem;
     border-radius: 0 2rem 2rem 0;
     display: flex;
     flex-flow: column nowrap;
     background: var(--color-header-background);
+    z-index: 10;
 }
 
 app-logo {
     aspect-ratio: 1 / 1;
     border-radius: 0 2rem 2rem 0;
     background: var(--color-logo-primary);
-    flex: 0 0 0%;
+    flex: 0 0 0;
     display: flex;
-    flex-direction: column-reverse;
+    flex-flow: column nowrap;
+    justify-content: flex-end;
 }
 
-app-logo-wrapper {
+app-logo-inset {
     display: block;
     width: 100%;
     background: var(--color-logo-secondary);
@@ -121,58 +126,136 @@ app-logo-wrapper {
     aspect-ratio: 2 / 1;
     align-self: flex-end;
 }
-app-logo-wrapper > img {
+app-logo-inset > img {
     display: block;
     width: 3rem;
     height: auto; 
     margin: -1.5rem auto auto auto;
 }
 
-theme-toggle {
-
+header-spacer {
+  flex: 1 1 0;
+  min-height: inherit; 
+  /* No purpose for min-height, other than making this element 
+     height nonzero so that it can be seen in browser DevTools */
 }
 
+light-theme-toggle,
+dark-theme-toggle,
+profile-icon {
+    aspect-ratio: 1 / 1;
+    flex: 0 0 0;
+    width: 100%;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: center;
+}
 
+light-theme-toggle:hover,
+dark-theme-toggle:hover {
+    filter: brightness(150%);
+}
+profile-icon {
+    border-top: medium solid var(--color-accent);
+}
+
+light-theme-toggle > img,
+dark-theme-toggle > img {
+    display: block;
+    width: 2rem;
+    height: auto; 
+    margin: auto;
+}
+profile-icon > img  {
+    display: block;
+    width: 3rem;
+    height: auto; 
+    margin: auto;
+    border-radius: 3rem;
+}
+
+dark-theme-toggle {
+    display: none;
+}
+
+invoices-list,
+invoice-view,
+invoice-edit {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items:center;
+    justify-content: flex-start;
+    max-width: calc(100vw - 25rem);
+}
+invoices-list,
+invoice-view {
+    width: 750px;
+    padding: 4rem;
+    margin: auto;
+}
+
+invoice-edit, invoice-view { /* Not permanent don't flip out */
+    position: absolute;
+    left: -25%;
+}
+
+invoices
+
+background-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-color: black;
+    opacity: 0;
+    z-index: 9;
+}
+
+h1, h2, h3, h4, h5 {
+    margin: 0;
+}
 
 h1 {
+    font-weight: bold;
+    font-size: 72px;
+    line-height: 80px;
+    letter-spacing: -1px;
+}
+
+h2 {
     font-weight: bold;
     font-size: 32px;
     line-height: 36px;
     letter-spacing: -1px;
 }
 
-h2 {
+h3 {
     font-weight: bold;
     font-size: 20px;
     line-height: 22px;
     letter-spacing: -0.63px;
 }
 
-h3 {
-    font-weight: bold;
-    font-size: 16px;
-    line-height: 24px;
-    letter-spacing: -0.8px;
-}
-
 h4 {
-    font-weight: bold;
-    font-size: 12px;
-    line-height: 15px;
-    letter-spacing: -0.25px;
+    font-weight: 500;
+    font-size: 20px;
+    line-height: 22px;
+    letter-spacing: -0.8px;
 }
 
 body, .body-text {
     font-weight: 500;
-    font-size: 12px;
-    line-height: 15px;
+    font-size: 16px;
+    line-height: 24px;
     letter-spacing: -0.25px;
+    color: var(--color-text);
 }
 
 label, .body-text-alt {
     font-weight: bold;
-    font-size: 11px;
-    line-height: 18px;
+    font-size: 16px;
+    line-height: 24px;
     letter-spacing: -0.23px;
 }
 
