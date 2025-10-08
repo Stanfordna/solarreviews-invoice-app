@@ -1,12 +1,26 @@
 <script setup>
-    import { fetchInvoices } from '../../js/api/getInvoices.js';
-    import { onMounted, ref } from 'vue';
+    import { fetchInvoices } from '../api.js';
+    import { watch, ref, onMounted } from 'vue';
+    import useEventsBus from '../eventBus.js';
+
     const invoiceCount = ref(0);
     const tabindex = ref(0);
     const selectedStatusFilter = ref(null);
     const invoices = ref([]);
     const closed = ref(true);
     const statusOptions = ref(['all', 'draft', 'pending', 'paid']);
+    const hideInvoicesList = ref(false);
+    const { broadcast, events } = useEventsBus();
+    watch(()=>events.value.get('VIEW_ALL_INVOICES'), async (val) => {
+        try {
+            invoices.value = await fetchInvoices();
+            invoiceCount.value = invoices.value.length;
+        } catch (err) {
+            console.error('Failed to load invoices on mount', err);
+        }
+        hideInvoicesList.value = false;
+    })
+
 
     const applyStatusFilter = async (status) => {
         selectedStatusFilter.value = status;
@@ -22,7 +36,6 @@
     onMounted(async () => {
         try {
             invoices.value = await fetchInvoices();
-            console.log(invoices.value);
             invoiceCount.value = invoices.value.length;
         } catch (err) {
             console.error('Failed to load invoices on mount', err);
@@ -32,7 +45,7 @@
 
 <style src='../../css/invoicesList.css'></style>
 <template>
-    <invoices-list-header>
+    <invoices-list-header :class="{ hidden: hideInvoicesList}">
         <heading-count>
             <h1>
                 Invoices
@@ -59,7 +72,7 @@
             </status-select>
             <img @click="closed = !closed" src="/icons/icon-arrow-down.svg"></img>
         </invoices-filter>
-        <new-invoice-button @click="console.log(invoices);">
+        <new-invoice-button @click="broadcast('NEW_INVOICE');">
             <add-icon>
                 <img src="/icons/icon-plus.svg"></img>
             </add-icon>
@@ -68,12 +81,14 @@
             </h4>
         </new-invoice-button>
     </invoices-list-header>
-    <invoices-list-body>
+    <invoices-list-body :class="{ hidden: hideInvoicesList}">
         <all-invoices v-if="invoices.length !== 0">
             <invoice-summary v-for="(invoice, i) of invoices" :key="i">
                 <status-wrapper v-if="selectedStatusFilter == null ||
                                       selectedStatusFilter == 'all' || 
-                                      selectedStatusFilter == invoice.status">
+                                      selectedStatusFilter == invoice.status"
+                                      @click="broadcast('VIEW_INVOICE', invoice.id);
+                                              hideInvoicesList = true;">
                     <invoice-id>{{invoice.id}}</invoice-id>
                     <due-date>{{invoice.due_date}}</due-date>
                     <client-name>{{invoice.client_name}}</client-name>

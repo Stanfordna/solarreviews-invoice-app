@@ -1,0 +1,43 @@
+invoice-view-header {
+    display: flex;
+    flex-flow: row nowrap;
+    width: 100%;
+    justify-items: baseline;
+    justify-content: space-between;
+    align-items: center;
+}
+invoice-view-header:hidden {
+    display: none;
+}
+
+go-back {
+    width: 7rem;
+    display: flex;
+    height: fit-content;
+    align-self: baseline;
+    justify-content: left;
+    align-items: center;
+    padding: 0.5rem;
+    margin-right: 100%;
+}
+go-back:hover {
+    filter: brightness(150%);
+}
+go-back.hidden {
+    display: none;
+}
+
+go-back > img {
+    display: block;
+    margin-right: 1rem;
+    margin-bottom: 2px;
+    display: block;
+    height: 11px;
+}
+
+invoice-view-body {
+
+}
+invoice-view-body:hidden {
+    display: none;
+}

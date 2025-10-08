@@ -5,7 +5,7 @@ import InvoiceViewComponent from './components/InvoiceViewComponent.vue'
 import InvoiceEditComponent from './components/InvoiceEditComponent.vue'
 
 // import App from './App.vue';
-const eventBus = createApp({});
+// const eventBus = createApp({}); TODO: Delete
 
 const invoicesList = createApp(InvoicesListComponent);
 const invoiceView = createApp(InvoiceViewComponent);

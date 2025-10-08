@@ -10,6 +10,10 @@ heading-count {
     flex: 1 0 0;
 }
 
+invoices-list-header.hidden {
+    display: none;
+}
+
 invoices-filter,
 new-invoice-button {
     height: fit-content;
@@ -23,7 +27,6 @@ invoices-filter {
 }
 
 invoices-filter:hover {
-    margin-right: 1rem;
     filter: brightness(150%);
 }
 
@@ -88,6 +91,10 @@ new-invoice-button:hover {
     background-color: var(--color-button-hover);
 }
 
+invoices-list-body.hidden {
+    display: none;
+}
+
 all-invoices {
     margin: 5rem auto;
     width: 750px;
@@ -99,7 +106,7 @@ all-invoices {
 
 invoice-summary{
     margin-top: 0.75rem;
-} 
+}
 
 status-wrapper {
     display: flex;
@@ -110,6 +117,9 @@ status-wrapper {
     background-color: var(--color-component-background);
     padding: 0.25rem;
     border-radius: 0.5rem;
+}
+status-wrapper:hover {
+    background-color: var(--color-save-as-draft-hover);
 }
 
 invoice-id,

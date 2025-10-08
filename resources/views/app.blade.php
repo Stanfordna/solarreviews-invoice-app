@@ -48,7 +48,6 @@
     </invoices-list>
     <invoice-view>
     </invoice-view>
-    {{-- <background-overlay></background-overlay> --}}
     <invoice-edit>
     </invoice-edit>
 </body>

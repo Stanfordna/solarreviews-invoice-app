@@ -194,9 +194,9 @@ invoice-view {
     margin: auto;
 }
 
-invoice-edit, invoice-view { /* Not permanent don't flip out */
-    position: absolute;
-    left: -25%;
+invoice-edit { 
+    /* Not permanent don't flip out */
+    /* TODO: should position be absolute on lhs of screen?  */
 }
 
 invoices
