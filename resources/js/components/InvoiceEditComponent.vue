@@ -1,30 +1,27 @@
 <script setup>
-import { ref } from 'vue';
+    import { addInvoice, editInvoice } from '../api.js';
+    import { watch, ref } from 'vue';
+    import useEventsBus from '../eventBus.js';
 
-const postData = ref({}); // set this in event listener watch function
+    const invoice = ref([]);
+    const hideInvoiceEdit = ref(true);
+    const { broadcast, events } = useEventsBus();
 
-const submitPost = async () => {
-  try {
-    const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(postData.value)
-    });
+    watch(()=>events.value.get('NEW_INVOICE'), async () => {
+        console.log(`creating new invoice`);
+        hideInvoiceEdit.value = false;
+    })
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Post created:', data);
-    // Optionally, reset the form or update UI
-    postData.value = { title: '', body: '' };
-  } catch (error) {
-    console.error('Error submitting post:', error);
-  }
-};
+    watch(()=>events.value.get('EDIT_INVOICE'), async (invoiceValue) => {
+        try {
+            invoice.value = invoiceValue;
+            console.log(`editing invoice ${invoice.value.id}`);
+        } catch (err) {
+            console.error('Failed to load invoice on mount', err);
+        }
+        hideInvoiceEdit.value = false;
+        console.log(invoice.value);
+    })
 </script>
 
 <template>
