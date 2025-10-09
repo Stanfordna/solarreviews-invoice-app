@@ -1,6 +1,5 @@
 export async function fetchInvoices() {
     try {
-        console.log("fetching all invoices...");
         console.log('/api/invoices');
         const response = await fetch('/api/invoices');
         if (!response.ok) {
@@ -17,7 +16,6 @@ export async function fetchInvoices() {
 
 export async function fetchInvoice(id) {
     try {
-        console.log("fetching one invoice...");
         console.log(`/api/invoices/<${id}>`);
         
         const response = await fetch(`/api/invoices/${id}`);

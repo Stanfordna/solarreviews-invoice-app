@@ -4,6 +4,7 @@ invoices-list-header {
     width: 100%;
     justify-items: baseline;
     align-items: center;
+    padding-top: 4rem;
 }
 
 heading-count {
@@ -96,7 +97,7 @@ invoices-list-body.hidden {
 }
 
 all-invoices {
-    margin: 5rem auto;
+    margin: 4rem auto;
     width: 750px;
     max-width: inherit;
     display: flex;
@@ -165,7 +166,6 @@ client-name {
 total-cents,
 invoice-status {
     justify-self: right;
-
 }
 
 total-cents {
@@ -182,9 +182,13 @@ total-cents:before {
 
 invoice-status {
     justify-self: right;
-    flex: 0.25 0 4rem;
+    flex: 0 0 5rem;
     text-align: center;
     border-radius: 0.5rem;
+}
+invoice-status::before {
+    content: '●';
+    margin-right: 0.5rem;
 }
 invoice-status.draft {
     color: var(--color-draft-status-text);

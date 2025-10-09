@@ -1,13 +1,19 @@
 invoice-view-header {
     display: flex;
     flex-flow: row nowrap;
-    width: 100%;
-    justify-items: baseline;
+    width: calc(100% - 6rem);
     justify-content: space-between;
     align-items: center;
+    padding: 0 3rem;
 }
-invoice-view-header:hidden {
+invoice-view-header.hidden {
     display: none;
+}
+
+invoice-view-header,
+invoice-view-body {
+    border-radius: 0.5rem;
+    background-color: var(--color-component-background);
 }
 
 go-back {
@@ -15,10 +21,10 @@ go-back {
     display: flex;
     height: fit-content;
     align-self: baseline;
-    justify-content: left;
+    justify-content: flex-start;
     align-items: center;
-    padding: 0.5rem;
-    margin-right: 100%;
+    padding-bottom: 2rem;
+    /* margin-right removed: 100% was pushing layout unexpectedly */
 }
 go-back:hover {
     filter: brightness(150%);
@@ -31,13 +37,197 @@ go-back > img {
     display: block;
     margin-right: 1rem;
     margin-bottom: 2px;
-    display: block;
     height: 11px;
 }
 
-invoice-view-body {
-
+invoice-view-header > h4,
+invoice-status,
+edit-invoice,
+delete-invoice,
+mark-as-paid,
+mark-as-unpaid {
+    padding: 0.5rem;
+    margin: 2rem 0.5rem;
 }
-invoice-view-body:hidden {
+
+invoice-status {
+    flex: 0 0 5rem;
+    text-align: center;
+    border-radius: 0.5rem;
+}
+invoice-status::before {
+    content: '●';
+    margin-right: 0.5rem;
+}
+invoice-status.draft {
+    color: var(--color-draft-status-text);
+    background-color: var(--color-draft-status-background);
+}
+invoice-status.pending {
+    color: var(--color-pending-status-text);
+    background-color: var(--color-pending-status-background);
+}
+invoice-status.paid {
+    color: var(--color-paid-status-text);
+    background-color: var(--color-paid-status-background);
+}
+
+edit-invoice,
+delete-invoice,
+mark-as-paid,
+mark-as-unpaid  {
+    border-radius: 2rem;
+    padding: 1rem;
+}
+
+edit-invoice {
+    margin-left: auto;
+    background-color: var(--color-save-as-draft);
+}
+edit-invoice:hover {
+    background-color: var(--color-save-as-draft-hover);
+}
+
+delete-invoice {
+    background-color: var(--color-delete);
+}
+delete-invoice:hover {
+    background-color: var(--color-delete-hover);
+}
+
+mark-as-paid,
+mark-as-unpaid  {
+    background-color: var(--color-button);
+}
+mark-as-paid:hover,
+mark-as-unpaid:hover  {
+    background-color: var(--color-button-hover);
+}
+
+invoice-view-body {
+    display: flex;
+    flex-flow: column nowrap;
+    width: 100%;
+    margin: 2rem 3rem 0;
+}
+invoice-view-body.hidden {
     display: none;
 }
+
+invoice-body-top {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    padding: 2.5rem 2.5rem 0;
+}
+
+invoice-id-description {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: left;
+    justify-content: baseline;
+    margin-right:auto;
+}
+invoice-id-description > h2,
+invoice-id-description > p {
+}
+invoice-id-description > h3::before {
+    content: '#';
+    font-weight: 400;
+}
+
+invoice-sender-address {
+    margin-left: auto;
+    justify-self: end;
+}
+
+invoice-body-middle {
+    display: flex;
+    flex-flow: row nowrap;
+    padding: 2.5rem;
+}
+
+invoice-dates,
+invoice-client-email  {
+    flex: 0 0 30%; 
+}
+
+invoice-client-name-address,
+invoice-client-email {
+    margin-top: 1rem;
+}
+
+invoice-client-name-address {
+    flex: 1 0 35%; 
+}
+
+invoice-client-name-address > h2,
+invoice-client-email > h3 {
+    padding: 0.5rem 1.5rem 0 0;
+}
+
+invoice-body-bottom {
+    background-color: var(--color-accent);
+    display: flex;
+    flex-flow: column nowrap;
+    padding: 2.5rem;
+
+}
+
+line-items {
+    margin-top: 1rem;
+}
+
+line-items-header,
+line-items,
+invoice-total {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    width: 100%;
+}
+heading-item-name,
+item-name {
+    flex: 0 0 45%;
+    text-align: left;
+}
+heading-item-quantity,
+item-quantity {
+    flex: 0 0 10%;
+    text-align: center;
+}
+heading-item-price,
+item-price {
+    flex: 0 0 20%;
+    text-align: right;
+}
+heading-item-total,
+item-total {
+    flex: 0 0 25%;
+    text-align: right;
+}
+item-price::before,
+item-total::before {
+    content: '£ ';
+}
+
+invoice-total {
+    height: 6rem;
+    justify-content: baseline;
+    background-color: var(--color-invoice-total-background);
+    border-radius: 0 0 0.5rem 0.5rem
+}
+invoice-total > h2,
+invoice-total > h3 {
+    padding: 2rem;
+
+}
+invoice-total > h2 {
+    justify-self: end;
+    margin-left: auto;
+
+}
+invoice-total > h2::before {
+    content: '£ ';
+}
+

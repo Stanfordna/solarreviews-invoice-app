@@ -7,11 +7,11 @@
     const tabindex = ref(0);
     const selectedStatusFilter = ref(null);
     const invoices = ref([]);
-    const closed = ref(true);
+    const closed = ref(true); // whether status dropdown is closed
     const statusOptions = ref(['all', 'draft', 'pending', 'paid']);
-    const hideInvoicesList = ref(false);
+    const hideInvoicesList = ref(true);
     const { broadcast, events } = useEventsBus();
-    watch(()=>events.value.get('VIEW_ALL_INVOICES'), async (val) => {
+    watch(() => events.VIEW_ALL_INVOICES, async () => {
         try {
             invoices.value = await fetchInvoices();
             invoiceCount.value = invoices.value.length;
@@ -19,7 +19,7 @@
             console.error('Failed to load invoices on mount', err);
         }
         hideInvoicesList.value = false;
-    })
+    });
 
 
     const applyStatusFilter = async (status) => {
@@ -37,13 +37,14 @@
         try {
             invoices.value = await fetchInvoices();
             invoiceCount.value = invoices.value.length;
+            hideInvoicesList.value = false;
         } catch (err) {
             console.error('Failed to load invoices on mount', err);
         }
-    })
+    });
 </script>
 
-<style src='../../css/invoicesList.css'></style>
+<style scoped src='../../css/invoicesList.css'></style>
 <template>
     <invoices-list-header :class="{ hidden: hideInvoicesList}">
         <heading-count>
@@ -63,11 +64,11 @@
                     {{ selectedStatusFilter ? `Filter by ${selectedStatusFilter}` : 'Filter by Status' }}
                 </chosen-status>
                 <status-options :class="{ hidden: closed }">
-                    <invoice-status
+                    <status-option
                         v-for="(status, i) of statusOptions"
                         :key="i" @click="applyStatusFilter(status)" >
                         {{ status }}
-                    </invoice-status>
+                    </status-option>
                 </status-options>
             </status-select>
             <img @click="closed = !closed" src="/icons/icon-arrow-down.svg"></img>
@@ -87,8 +88,8 @@
                 <status-wrapper v-if="selectedStatusFilter == null ||
                                       selectedStatusFilter == 'all' || 
                                       selectedStatusFilter == invoice.status"
-                                      @click="broadcast('VIEW_INVOICE', invoice.id);
-                                              hideInvoicesList = true;">
+                                      @click="hideInvoicesList = true;
+                                              broadcast('VIEW_INVOICE', invoice.id);">
                     <invoice-id>{{invoice.id}}</invoice-id>
                     <due-date>{{invoice.due_date}}</due-date>
                     <client-name>{{invoice.client_name}}</client-name>

@@ -1,19 +1,26 @@
-import { ref } from "vue";
-const events = ref(new Map());
+import { reactive } from "vue";
 
-export default function useEventsBus(){
+const events = reactive({
+    VIEW_ALL_INVOICES: false,
+    VIEW_INVOICE: null,
+    NEW_INVOICE: false,
+    EDIT_INVOICE: null,
+});
 
-    function broadcast(event, ...args) {
-        events.value.set(event, args);
-        console.log('Event broadcast.\n name:');
-        console.log(event);
-        console.log('value:');
-        console.log(...args);
+export default function useEventsBus() {
+    function broadcast(event, payload = null) {
+        // Clear all events (optional, if you want only one active at a time)
+        if (payload === null) {
+            console.log(`toggling ${event}`)
+            events[event] = !events[event];
+        }
+        else {
+            events[event] = payload;
+        }
     }
 
     return {
         broadcast,
         events
-    }
+    };
 }
-

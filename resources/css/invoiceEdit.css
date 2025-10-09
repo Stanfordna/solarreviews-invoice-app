@@ -1,0 +1,108 @@
+tinted-screen {
+    background-color: #00000090;
+    position: fixed;
+    height: 100vh;
+    width: 100vw;
+    left: 0;
+    top: 0;
+}
+
+tinted-screen.hidden {
+    display: none;
+}
+
+edit-invoice-background {
+    position: absolute;
+    top: 0;
+    left: 5px;
+    height: 100vh;
+    width: 600px;
+    padding: 2rem;
+    background-color: var(--color-app-background);
+    border-radius: 0 2rem 2rem 0;
+}
+
+invoice-form {
+    padding-left: 7rem;
+    display: flex;
+    flex-flow: column nowrap;
+    width: calc(500px - 2rem);
+    overflow: auto;
+}
+
+bill-from,
+bill-to,
+invoice-details {
+    display: flex;
+    flex-flow: row wrap;
+    padding-top: 1rem;
+    justify-content: space-between;
+}
+
+bill-to > p,
+bill-from > p {
+    color: var(--color-button);
+    display: block;
+    width: 100%;
+}
+
+from-street-label,
+from-city-label,
+from-post-code-label,
+from-country-label,
+to-name-label,
+to-email-label,
+to-street-label,
+to-city-label,
+to-post-code-label,
+to-country-label,
+invoice-date-label,
+payment-terms-label,
+project-description-label {
+    height: 5rem;
+    text-align: left;
+    display: block;
+}
+
+from-city-label,
+from-post-code-label,
+from-country-label,
+to-city-label,
+to-post-code-label,
+to-country-label {
+    flex: 0 0 140px;
+}
+
+from-street-label,
+to-street-label,
+to-name-label,
+to-email-label,
+project-description-label {
+    flex: 0 0 100%;
+}
+
+invoice-date-label,
+payment-terms-label {
+    flex: 0 0 215px;
+}
+invoice-date-label > input,
+payment-terms-label > input {
+}
+
+input, select {
+    margin-top: 5px;
+    display: block;
+    height: 2.5rem;
+    width: 100%;
+    background-color: var(--color-component-background);
+    color: var(--color-text);
+    box-shadow: none;
+    border: none;
+    box-sizing: border-box;
+    padding-left: 1rem;
+    border-radius: 0.5rem;
+
+}
+
+
+
