@@ -34,7 +34,7 @@ class InvoiceController extends Controller
     public function store(InvoiceRequest $request)
     {
         $data = $request->all();
-        Log::info('Incoming Request:', $data);
+        Log::info("Incoming Request:\n" . json_encode($data, JSON_PRETTY_PRINT));
 
         if ($data['status'] == 'pending') { 
             // for pending, attempt to find preexisting client/addresses to reference in new invoice.
@@ -152,7 +152,7 @@ class InvoiceController extends Controller
     public function update(InvoiceRequest $request, Invoice $invoice)
     {
         $data = $request->all();
-        Log::info('Incoming Request:', $data);
+        Log::info("\n\nIncoming PUT Request:\n" . json_encode($data, JSON_PRETTY_PRINT));
 
         if (($invoice->status == "pending" || $invoice->status == "paid") && $data['status'] == 'draft') {
             return response()->json([
@@ -285,6 +285,7 @@ class InvoiceController extends Controller
             ]);
             // associate the newly created client to the invoice
             $invoice->client()->associate($newClient);
+            Log::info("\nCreated CLIENT:\n" . json_encode($newClient, JSON_PRETTY_PRINT));
         }
         if ($createNewClientAddress) {
             $newClientAddress = Address::create([
@@ -295,6 +296,7 @@ class InvoiceController extends Controller
             ]);
             // associate as the invoice's client address
             $invoice->clientAddress()->associate($newClientAddress);
+            Log::info("\nCreated client ADDRESS:\n" . json_encode($newClientAddress, JSON_PRETTY_PRINT));
         }
 
         if ($createNewSenderAddress) {
@@ -306,34 +308,46 @@ class InvoiceController extends Controller
             ]);
             // associate the newly created sender address
             $invoice->senderAddress()->associate($newSenderAddress);
+            Log::info("\nCreated sender ADDRESS:\n" . json_encode($newSenderAddress, JSON_PRETTY_PRINT));
         }
 
         if ($updateCurrentClient) {
-            // debug statements removed
             $invoice->client->full_name = ($data['client_name'] ?? "");
             $invoice->client->email = ($data['client_email'] ?? "");
+            $invoice->client->save();
+            Log::info("\nUpdating CLIENT:\n{$invoice->client->full_name}\n{$invoice->client->email}");
         }
         if ($updateCurrentClientAddress) {
             $invoice->clientAddress->street = ($data['client_address']['street'] ?? "");
             $invoice->clientAddress->city = ($data['client_address']['city'] ?? "");
             $invoice->clientAddress->postal_code = ($data['client_address']['postal_code'] ?? "");
             $invoice->clientAddress->country = ($data['client_address']['country'] ?? "");
-
+            $invoice->clientAddress->save();
+            Log::info("\nUpdating client ADDRESS:\n{$invoice->clientAddress->street}\n" .
+                      "{$invoice->clientAddress->city}\n{$invoice->clientAddress->postal_code}\n" .
+                      "{$invoice->clientAddress->country}\n");
         }
         if ($updateCurrentSenderAddress) {
             $invoice->senderAddress->street = ($data['sender_address']['street'] ?? "");
             $invoice->senderAddress->city = ($data['sender_address']['city'] ?? "");
             $invoice->senderAddress->postal_code = ($data['sender_address']['postal_code'] ?? "");
             $invoice->senderAddress->country = ($data['sender_address']['country'] ?? "");
+            $invoice->senderAddress->save();
+            Log::info("\nUpdating sender ADDRESS:\n{$invoice->senderAddress->street}\n" .
+                      "{$invoice->senderAddress->city}\n{$invoice->senderAddress->postal_code}\n" .
+                      "{$invoice->senderAddress->country}\n");
         }
 
         if ($deleteCurrentClient) {
+            Log::info("\nDeleting client {$currentClient->id}");
             $currentClient->delete();
         }
         if ($deleteCurrentClientAddress) {
+            Log::info("\nDeleting address {$currentClientAddress->id}");
             $currentClientAddress->delete();
         }
         if ($deleteCurrentSenderAddress) {
+            Log::info("\nDeleting address {$currentSenderAddress->id}");
             $currentSenderAddress->delete();
         }
         // overwrite all line items - just remove and create new ones
@@ -350,6 +364,7 @@ class InvoiceController extends Controller
                 'price_unit_cents' => ($lineItem['price_unit_cents'] ?? null),
                 'price_total_cents' => ($lineItem['price_unit_cents'] ?? 0) * ($lineItem['quantity'] ?? 0)
             ]);
+            Log::info("Created line item {$lineItem['name']}");
         }
 
         $invoice->save();

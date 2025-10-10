@@ -1,8 +1,9 @@
 <script setup>
-    import { fetchInvoice, deleteInvoice } from '../api.js';
+    import { fetchInvoice, editInvoice, deleteInvoice } from '../api.js';
     import { watch, ref } from 'vue';
     import useEventsBus from '../eventBus.js';
 
+    const userMessage = ref('')
     const invoice = ref([]);
     const hideInvoiceView = ref(true);
     const { broadcast, events } = useEventsBus();
@@ -10,6 +11,7 @@
     watch(() => events.VIEW_INVOICE, async (id) => {
         if (id !== null) {
             try {
+                userMessage.value = '';
                 console.log(`attempting to fetch ${id}`);
                 invoice.value = await fetchInvoice(id);
             } catch (err) {
@@ -26,17 +28,20 @@
 
 <style scoped src='../../css/invoiceView.css'></style>
 <template>
-    <go-back :class="{ 'hidden': hideInvoiceView }" @click="hideInvoiceView = true;
-                        broadcast('VIEW_ALL_INVOICES')">
-        <img src="/icons/icon-arrow-left.svg"></img>
-        <h3>Go Back</h3>
-    </go-back>
+    <nav-and-message>
+        <go-back :class="{ 'hidden': hideInvoiceView }" @click="hideInvoiceView = true;
+                            broadcast('VIEW_ALL_INVOICES')">
+            <img src="/icons/icon-arrow-left.svg"></img>
+            <h3>Go Back</h3>
+        </go-back>
+        <p v-if="userMessage && !hideInvoiceView" v-html="userMessage"></p>
+    </nav-and-message>
     <invoice-view-header v-if="invoice" :class="{ 'hidden': hideInvoiceView}">
         <h4>Status</h4>
         <invoice-status :class="invoice.status" >
             {{invoice.status}}
         </invoice-status>
-        <edit-invoice @click="broadcast('EDIT_INVOICE', invoice)">
+        <edit-invoice @click="broadcast('EDIT_INVOICE', invoice)" :class="{ hidden: invoice.status === 'paid' }">
             <h3>Edit</h3>
         </edit-invoice>
         <delete-invoice @click="deleteInvoice(invoice.id);
@@ -44,12 +49,48 @@
                                 broadcast('VIEW_ALL_INVOICES');">
             <h3>Delete</h3>
         </delete-invoice>
-        <mark-as-paid v-if="invoice.status === 'pending'" @click="invoice.status = 'paid'">
+        <mark-as-paid v-if="invoice.status === 'pending'"
+            @click="invoice.status = 'paid';
+                    editInvoice(invoice.id, invoice).then(
+                        ([success, message]) => { 
+                        if (success) {
+                            userMessage = message;
+                            delayThenHideAndBroadcast(2000, 'VIEW_INVOICE', invoice.id);
+                        } else {
+                            invoice.status = 'pending';
+                            userMessage = message; // error message
+                        }
+                    });">
             <h3>Mark as Paid</h3>
         </mark-as-paid>
-        <mark-as-unpaid v-if="invoice.status === 'paid'" @click="invoice.status = 'pending'">
-            <h3>Mark as unpaid</h3>
+        <mark-as-unpaid v-if="invoice.status === 'paid'"
+            @click="invoice.status = 'pending';
+                    editInvoice(invoice.id, invoice).then(
+                        ([success, message]) => { 
+                        if (success) {
+                            userMessage = message;
+                            delayThenHideAndBroadcast(2000, 'VIEW_INVOICE', invoice.id);
+                        } else {
+                            invoice.status = 'paid';
+                            userMessage = message; // error message
+                        }
+                    });">
+            <h3>Mark as Unpaid</h3>
         </mark-as-unpaid>
+        <mark-as-pending v-if="invoice.status === 'draft'"
+            @click="invoice.status = 'pending';
+                    editInvoice(invoice.id, invoice).then(
+                        ([success, message]) => { 
+                        if (success) {
+                            userMessage = message;
+                            delayThenHideAndBroadcast(2000, 'VIEW_INVOICE', invoice.id);
+                        } else {
+                            invoice.status = 'draft';
+                            userMessage = message; // error message
+                        }
+                    });">
+            <h3>Send Invoice</h3>
+        </mark-as-pending>
     </invoice-view-header>
     <invoice-view-body v-if="invoice" :class="{ 'hidden': hideInvoiceView}">
         <invoice-body-top>

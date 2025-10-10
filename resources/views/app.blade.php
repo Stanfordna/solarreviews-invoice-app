@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Invoices | Laravel</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('icons\favicon-32x32.png') }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

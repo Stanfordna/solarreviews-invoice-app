@@ -134,7 +134,7 @@ line-item {
 
 heading-item-name,
 item-name {
-    flex: 0 0 12rem;
+    flex: 0 0 11rem;
     text-align: left;
 }
 heading-item-quantity,
@@ -145,7 +145,7 @@ item-quantity {
 }
 heading-item-price,
 item-price {
-    flex: 0 0 4rem;
+    flex: 0 0 5rem;
     text-align: left;
 }
 

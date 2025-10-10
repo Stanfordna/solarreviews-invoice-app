@@ -1,3 +1,16 @@
+nav-and-message {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+    padding-right: 3rem;
+}
+nav-and-message > p {
+    margin: -1rem 0 0 0;
+}
+
 invoice-view-header {
     display: flex;
     flex-flow: row nowrap;
@@ -54,6 +67,14 @@ mark-as-unpaid {
     margin: 2rem 0.5rem;
 }
 
+edit-invoice.hidden {
+    display: none;
+}
+
+edit-invoice.hidden + delete-invoice {
+    margin-left: auto;
+}
+
 invoice-status {
     flex: 0 0 5rem;
     text-align: center;
@@ -79,7 +100,8 @@ invoice-status.paid {
 edit-invoice,
 delete-invoice,
 mark-as-paid,
-mark-as-unpaid  {
+mark-as-unpaid,
+mark-as-pending  {
     border-radius: 2rem;
     padding: 1rem;
 }
@@ -100,11 +122,13 @@ delete-invoice:hover {
 }
 
 mark-as-paid,
-mark-as-unpaid  {
+mark-as-unpaid,
+mark-as-pending  {
     background-color: var(--color-button);
 }
 mark-as-paid:hover,
-mark-as-unpaid:hover  {
+mark-as-unpaid:hover,
+mark-as-pending:hover  {
     background-color: var(--color-button-hover);
 }
 

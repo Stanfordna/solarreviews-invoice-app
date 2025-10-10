@@ -41,18 +41,16 @@
         invoice.value.payment_terms = invoice.value.payment_terms ?? '';
         invoice.value.description = invoice.value.description ?? '';
         invoice.value.line_items = invoice.value.line_items ?? [];
-        if (Array.isArray(invoice.value.line_items)) {
-            console.log("line_items is an array");
-        } else {
-            console.log("line_items is not an array");
-        }
-        console.log(`currernt line items: ${invoice.value.line_items}`)
-        for (let i = 0; i < invoice.value.line_items; i++) {
-            invoice.value.line_items[i]['id'] = i;
-            console(`setting ${line_item.name} to id ${invoice.value.line_items[i]['id']}`);
-            invoice.value.line_items[i]['price_unit_decimal'] = (
-                invoice.value.line_items[i].price_unit_cents * invoice.value.line_items[i].quantity / 100
-            );
+        console.log(`current line items: ${JSON.stringify(invoice.value.line_items)}`)
+        // Ensure we iterate the array length and normalize each line item
+        for (let i = 0; i < invoice.value.line_items.length; i++) {
+            const item = invoice.value.line_items[i] = invoice.value.line_items[i] ?? {};
+            // ensure an id exists
+            item.id = item.id ?? i;
+            // normalize cents -> decimal for display
+            item.price_unit_cents = item.price_unit_cents ?? 0;
+            item.quantity = item.quantity ?? 0;
+            item.price_unit_decimal = Number((item.price_unit_cents / 100).toFixed(2));
         }
     }
     initializeNullAttributes();
@@ -78,9 +76,23 @@
         // If the item is found, remove it from the array
         console.log(`line item index: ${index}`);
         if (index !== -1) {
-            console.log(`deleting {$invoice.value.line_items[index].name}`);
+            console.log(`deleting ${invoice.value.line_items[index].name}`);
             invoice.value.line_items.splice(index, 1);
         }
+    }
+
+    function delayThenHideAndBroadcast(delay = 2500, event = 'VIEW_ALL_INVOICES', payload = null) {
+        setTimeout(() => {
+            hideInvoiceEdit.value = true;
+            broadcast(event, payload);
+        }, delay);
+    }
+
+    function trimInputs() {
+        const inputs = document.querySelectorAll('input[type="text"]');
+        inputs.forEach(input => {
+            input.value = input.value.trim();
+        });
     }
 
     watch(() => events.NEW_INVOICE, () => {
@@ -106,7 +118,9 @@
         isEdit.value = true;
         userMessage.value = '';
         initializeNullAttributes();
-        hideInvoiceEdit.value = false;
+        setTimeout(() => {
+            hideInvoiceEdit.value = false;
+        }, 100)
     });
 </script>
 
@@ -118,7 +132,7 @@
             <invoice-form v-if="invoice">
                 <h2 v-if="invoice.id">Edit #{{ invoice.id }}</h2>
                 <h2 v-else>New Invoice</h2>
-                <p v-if="userMessage">{{ userMessage }}</p>
+                <p v-if="userMessage" v-html="userMessage"></p>
                 <bill-from>
                     <p>Bill From</p>
                     <from-street-label>
@@ -249,15 +263,13 @@
                         </h5 class='body-text-alt'>
                     </discard-invoice>
                     <save-draft @click="invoice.status = 'draft';
+                                            trimInputs();
                                             addInvoice(invoice).then(
                                                 ([success, message, id]) => { 
                                                 if (success) {
                                                     invoice.id = id;
                                                     userMessage = message;
-                                                    setTimeout(() => {
-                                                        hideInvoiceEdit = true;
-                                                        broadcast('VIEW_ALL_INVOICES');
-                                                    }, 2500);
+                                                    delayThenHideAndBroadcast(2000, 'VIEW_ALL_INVOICES');
                                                 } else {
                                                     userMessage = message; // error message
                                                 }
@@ -267,15 +279,13 @@
                         </h5 class='body-text-alt'>
                     </save-draft>
                     <save-n-send @click="invoice.status = 'pending';
+                                            trimInputs();
                                             addInvoice(invoice).then(
                                                 ([success, message, id]) => { 
                                                 if (success) {
                                                     invoice.id = id;
                                                     userMessage = message;
-                                                    setTimeout(() => {
-                                                        hideInvoiceEdit = true;
-                                                        broadcast('VIEW_ALL_INVOICES');
-                                                    }, 2500);
+                                                    delayThenHideAndBroadcast(2000, 'VIEW_ALL_INVOICES');
                                                 } else {
                                                     userMessage = message; // error message
                                                 }
@@ -291,18 +301,16 @@
                             Cancel
                         </h5 class='body-text-alt'>
                     </cancel-changes>
-                    <save-changes @click="editInvoice(invoice).then(
-                                                ([success, message]) => { 
-                                                if (success) {
-                                                    userMessage = message;
-                                                    setTimeout(() => {
-                                                        hideInvoiceEdit = true;
-                                                        broadcast('VIEW_INVOICE', invoice.id);
-                                                    }, 2500);
-                                                } else {
-                                                    userMessage = message; // error message
-                                                }
-                                            });">
+                    <save-changes @click="trimInputs();
+                                        editInvoice(invoice.id, invoice).then(
+                                            ([success, message]) => { 
+                                            if (success) {
+                                                userMessage = message;
+                                                delayThenHideAndBroadcast(2000, 'VIEW_INVOICE', invoice.id);
+                                            } else {
+                                                userMessage = message; // error message
+                                            }
+                                        });">
                         <h5 class='body-text-alt'>
                             Save Changes
                         </h5 class='body-text-alt'>

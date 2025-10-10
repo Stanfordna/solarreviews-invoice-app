@@ -44,10 +44,13 @@ export async function addInvoice(invoiceData) {
             },
             body: JSON.stringify(invoiceData),
         });
-        if (!response.ok) {
-            return (typeof json === 'object' && 'message' in json) ? [false, json.message] : [false, json];
-        }
         const json = await response.json();
+        if (!response.ok) {
+            console.log(json);
+            return (typeof json === 'object' && 'message' in json && 'errors' in json) ? 
+                [false, json.message + '<br>' + Object.values(json.errors)[0]]:
+                [false, json];
+        }
 
         return (typeof json === 'object' && 'message' in json && 'invoice_id' in json) ? 
             [true, json.message, json.invoice_id] : [true, json];
@@ -69,10 +72,13 @@ export async function editInvoice(id, invoiceData) {
             },
             body: JSON.stringify(invoiceData),
         });
-        if (!response.ok) {
-            return (typeof json === 'object' && 'message' in json) ? [false, json.message] : [false, json];
-        }
         const json = await response.json();
+        if (!response.ok) {
+            console.log(json);
+            return (typeof json === 'object' && 'message' in json && 'errors' in json) ? 
+                [false, json.message + '<br>' + Object.values(json.errors)[0]]:
+                [false, json];
+        }
 
         return (typeof json === 'object' && 'message' in json) ? [true, json.message] : [true, json];
     } catch (err) {

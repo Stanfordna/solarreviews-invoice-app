@@ -69,6 +69,7 @@ export default defineConfig({
                             'delete-invoice',
                             'mark-as-paid',
                             'mark-as-unpaid',
+                            'mark-as-pending',
                             'tinted-screen',
                             'edit-invoice-background',
                             'invoice-form',
