@@ -18,6 +18,7 @@
         } catch (err) {
             console.error('Failed to load invoices on mount', err);
         }
+        console.log("VIEW_ALL_INVOICES");
         hideInvoicesList.value = false;
     });
 
@@ -46,7 +47,7 @@
 
 <style scoped src='../../css/invoicesList.css'></style>
 <template>
-    <invoices-list-header :class="{ hidden: hideInvoicesList}">
+    <invoices-list-header :class="{ 'hidden': hideInvoicesList}">
         <heading-count>
             <h1>
                 Invoices
@@ -63,7 +64,7 @@
                 <chosen-status @click="closed = !closed">
                     {{ selectedStatusFilter ? `Filter by ${selectedStatusFilter}` : 'Filter by Status' }}
                 </chosen-status>
-                <status-options :class="{ hidden: closed }">
+                <status-options :class="{ 'hidden': closed }">
                     <status-option
                         v-for="(status, i) of statusOptions"
                         :key="i" @click="applyStatusFilter(status)" >
@@ -82,7 +83,7 @@
             </h4>
         </new-invoice-button>
     </invoices-list-header>
-    <invoices-list-body :class="{ hidden: hideInvoicesList}">
+    <invoices-list-body :class="{ 'hidden': hideInvoicesList}">
         <all-invoices v-if="invoices.length !== 0">
             <invoice-summary v-for="(invoice, i) of invoices" :key="i">
                 <status-wrapper v-if="selectedStatusFilter == null ||

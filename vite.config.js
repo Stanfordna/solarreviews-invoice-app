@@ -89,6 +89,18 @@ export default defineConfig({
                             'to-email-label',
                             'to-name-label',
                             'to-email-label',
+                            'trash-button',
+                            'line-item',
+                            'add-line-item-button',
+                            'line-items-section',
+                            'discard-invoice',
+                            'save-draft',
+                            'save-n-send',
+                            'new-invoice-buttons',
+                            'cancel-changes',
+                            'save-changes',
+                            'edit-invoice-buttons',
+                            'invoice-form-buttons',
                         ];
                         return customTags.includes(tag);
                     }

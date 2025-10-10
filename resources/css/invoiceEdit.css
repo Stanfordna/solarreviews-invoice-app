@@ -12,22 +12,29 @@ tinted-screen.hidden {
 }
 
 edit-invoice-background {
+    display: flex;
+    flex-flow: column nowrap;
     position: absolute;
     top: 0;
     left: 5px;
     height: 100vh;
     width: 600px;
-    padding: 2rem;
+    padding: 2rem 0 0 2rem;
     background-color: var(--color-app-background);
     border-radius: 0 2rem 2rem 0;
 }
 
 invoice-form {
-    padding-left: 7rem;
+    padding: 1rem 1rem 0 7rem;
     display: flex;
     flex-flow: column nowrap;
     width: calc(500px - 2rem);
-    overflow: auto;
+    overflow-y: auto;
+    scrollbar-color: var(--color-component-background) var(--color-app-background);
+}
+
+invoice-form::-webkit-scrollbar-thumb {
+    border-radius: 1rem;
 }
 
 bill-from,
@@ -104,5 +111,175 @@ input, select {
 
 }
 
+line-items-section {
+    display: flex;
+    flex-flow: column nowrap;
+    padding: 1rem 0 3rem;
+    justify-content: space-between;
+}
+
+line-items-header{
+    display: flex;
+    flex-flow: row wrap;
+}
+line-items-header,
+line-item {
+    align-items: center;
+    width: 100%;
+}
+line-item {
+    display: flex;
+    flex-flow: row nowrap;
+}
+
+heading-item-name,
+item-name {
+    flex: 0 0 12rem;
+    text-align: left;
+}
+heading-item-quantity,
+item-quantity {
+    /* 10% */
+    flex: 0 0 3rem;
+    text-align: left;
+}
+heading-item-price,
+item-price {
+    flex: 0 0 4rem;
+    text-align: left;
+}
+
+heading-item-total,
+item-total {
+    flex: 0 0 4.5rem;
+    text-align: right;
+}
+
+trash-button {
+    flex: 1 0 2rem;
+}
+trash-button:hover {
+    filter: brightness(150%);
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+heading-item-name,
+item-name,
+heading-item-quantity,
+item-quantity,
+heading-item-price,
+item-price,
+heading-item-total,
+item-total {
+    margin-right: 1rem;
+}
+
+line-items-header > h2 {
+    flex: 0 0 100%;
+}
+
+add-line-item-button,
+discard-invoice, 
+save-draft,
+save-n-send,
+cancel-changes,
+save-changes {
+    border-radius: 2rem;
+    padding: 0.75rem;
+    margin: 2rem 0.5rem 0.5rem 0;
+    background-color: var(--color-button);
+    text-align: center;
+}
+
+add-line-item-button {
+    background-color: var(--color-component-background);
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
+    align-items: center;
+}
+add-line-item-button:hover {
+    filter: brightness(150%);
+}
+
+
+/* leftmost right buttons */
+cancel-changes,
+save-draft {
+    margin-left: auto;
+    background-color: var(--color-save-as-draft);
+}
+cancel-changes:hover,
+save-draft:hover {
+    background-color: var(--color-save-as-draft-hover);
+}
+
+/* New Invoice */
+discard-invoice {
+    flex: 0 0 4rem;
+    margin-right: auto;
+    background-color: var(--color-draft-status-text);
+    color: var(--light-theme-text-alt);
+}
+discard-invoice:hover {
+    color: var(--light-theme-text);
+}
+save-draft{
+    flex: 0 0 6rem;
+}
+save-n-send {
+    flex: 0 0 6rem;
+    margin-right: 1rem;
+}
+
+/* Edit invoice */
+cancel-changes{
+    flex: 0 0 4rem;
+}
+save-changes {
+    flex: 0 0 7rem;
+}
+
+
+save-n-send,
+save-changes {
+    background-color: var(--color-button);
+}
+save-n-send::hover,
+save-changes::hover {
+    background-color: var(--color-button-hover);
+}
+
+invoice-form-buttons {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--color-app-background);
+    width: calc(500px - 2rem);
+    padding: 0 1rem 3rem 7rem;
+    border-radius: 1rem 1rem 0 0;
+    box-shadow: 0 0 10rem #000000FF;
+}
+
+invoice-form-buttons h5 {
+    top: 2px;
+    position: relative;
+}
+
+new-invoice-buttons,
+edit-invoice-buttons {
+    flex: 0 0 100%;
+    display: flex;
+}
+
+.hidden {
+    display: none;
+}
 
 

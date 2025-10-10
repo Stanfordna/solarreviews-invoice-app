@@ -6,6 +6,10 @@ invoice-view-header {
     align-items: center;
     padding: 0 3rem;
 }
+invoice-view-header h3 {
+    position: relative;
+    top: 3px;
+}
 invoice-view-header.hidden {
     display: none;
 }

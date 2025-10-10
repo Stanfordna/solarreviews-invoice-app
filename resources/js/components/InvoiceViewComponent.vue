@@ -8,35 +8,39 @@
     const { broadcast, events } = useEventsBus();
 
     watch(() => events.VIEW_INVOICE, async (id) => {
-        try {
-            console.log(`attempting to fetch ${id}`);
-            invoice.value = await fetchInvoice(id);
-        } catch (err) {
-            console.error('Failed to load invoice on mount', err);
+        if (id !== null) {
+            try {
+                console.log(`attempting to fetch ${id}`);
+                invoice.value = await fetchInvoice(id);
+            } catch (err) {
+                console.error('Failed to load invoice on mount', err);
+            }
+            hideInvoiceView.value = false;
+            console.log("VIEW_INVOICE");
+        } else {
+            console.log("refreshing VIEW_INVOICE");
         }
-        hideInvoiceView.value = false;
-        console.log(invoice.value);
     })
 </script>
 
 
 <style scoped src='../../css/invoiceView.css'></style>
 <template>
-    <go-back :class="{ hidden: hideInvoiceView }" @click="hideInvoiceView = true;;
+    <go-back :class="{ 'hidden': hideInvoiceView }" @click="hideInvoiceView = true;
                         broadcast('VIEW_ALL_INVOICES')">
-        <img  src="/icons/icon-arrow-left.svg"></img>
+        <img src="/icons/icon-arrow-left.svg"></img>
         <h3>Go Back</h3>
     </go-back>
-    <invoice-view-header v-if="invoice" :class="{ hidden: hideInvoiceView}">
+    <invoice-view-header v-if="invoice" :class="{ 'hidden': hideInvoiceView}">
         <h4>Status</h4>
         <invoice-status :class="invoice.status" >
             {{invoice.status}}
         </invoice-status>
-        <edit-invoice @click="broadcast('EDIT_INVOICE', invoice.id)">
+        <edit-invoice @click="broadcast('EDIT_INVOICE', invoice)">
             <h3>Edit</h3>
         </edit-invoice>
         <delete-invoice @click="deleteInvoice(invoice.id);
-                                hideInvoicesList = true;
+                                hideInvoiceView = true;
                                 broadcast('VIEW_ALL_INVOICES');">
             <h3>Delete</h3>
         </delete-invoice>
@@ -47,7 +51,7 @@
             <h3>Mark as unpaid</h3>
         </mark-as-unpaid>
     </invoice-view-header>
-    <invoice-view-body v-if="invoice" :class="{ hidden: hideInvoiceView}">
+    <invoice-view-body v-if="invoice" :class="{ 'hidden': hideInvoiceView}">
         <invoice-body-top>
             <invoice-id-description>
                 <h3>{{ invoice.id }}</h3>

@@ -1,4 +1,4 @@
-import { reactive } from "vue";
+import { reactive, ref } from "vue";
 
 const events = reactive({
     VIEW_ALL_INVOICES: false,
@@ -9,14 +9,21 @@ const events = reactive({
 
 export default function useEventsBus() {
     function broadcast(event, payload = null) {
-        // Clear all events (optional, if you want only one active at a time)
         if (payload === null) {
             console.log(`toggling ${event}`)
-            events[event] = !events[event];
+            payload = !events[event];
         }
-        else {
+        if (typeof payload === 'string') {
+             // in case it's the same invoice id, we make sure the watcher observes
+             // a change to null then back tot he same id. Watcher knows to ignore null.
+            events[event] = null;
+        }
+        if (typeof payload === 'object') {
+            payload = ref(JSON.parse(JSON.stringify(payload)));
+        }
+        setTimeout(() => {
             events[event] = payload;
-        }
+        }, 100)
     }
 
     return {

@@ -10,6 +10,7 @@ use App\Models\Address;
 use App\Models\Invoice;
 use App\Http\Requests\InvoiceRequest;
 use App\Models\LineItem;
+use Illuminate\Support\Facades\Log;
 
 class InvoiceController extends Controller
 {
@@ -33,6 +34,7 @@ class InvoiceController extends Controller
     public function store(InvoiceRequest $request)
     {
         $data = $request->all();
+        Log::info('Incoming Request:', $data);
 
         if ($data['status'] == 'pending') { 
             // for pending, attempt to find preexisting client/addresses to reference in new invoice.
@@ -149,9 +151,10 @@ class InvoiceController extends Controller
      */
     public function update(InvoiceRequest $request, Invoice $invoice)
     {
-        $invoiceData = $request->all();
+        $data = $request->all();
+        Log::info('Incoming Request:', $data);
 
-        if (($invoice->status == "pending" || $invoice->status == "paid") && $invoiceData['status'] == 'draft') {
+        if (($invoice->status == "pending" || $invoice->status == "paid") && $data['status'] == 'draft') {
             return response()->json([
                 'message' => 'Invoice with current status "Pending" or "Paid" cannot be changed to "Draft".',
                 'invoice_id' => $invoice->id
@@ -159,12 +162,12 @@ class InvoiceController extends Controller
         }
 
         // first update values belonging to the invoices table, not foreign relations
-        $invoice->issue_date = $invoiceData['issue_date'] ?? "";
-        $invoice->due_date = $invoiceData['due_date'] ?? "";
-        $invoice->description = $invoiceData['description'] ?? "";
-        $invoice->payment_terms = $invoiceData['payment_terms'] ?? "";
-        $invoice->status = $invoiceData['status'] ?? "";
-        $invoice->total_cents = $invoiceData['total_cents'] ?? "";
+        $invoice->issue_date = $data['issue_date'] ?? "";
+        $invoice->due_date = $data['due_date'] ?? "";
+        $invoice->description = $data['description'] ?? "";
+        $invoice->payment_terms = $data['payment_terms'] ?? "";
+        $invoice->status = $data['status'] ?? "";
+        $invoice->total_cents = $data['total_cents'] ?? "";
 
         // get invoice client and addresses
         $currentClient = $invoice->client;
@@ -174,48 +177,48 @@ class InvoiceController extends Controller
 
         // Consider changed if any relevant field differs (use OR, not AND)
         $clientChanged = (
-            ($invoice->client->full_name ?? "") !== ($invoiceData['client_name'] ?? "") ||
-            ($invoice->client->email ?? "") !== ($invoiceData['client_email'] ?? "")
+            ($invoice->client->full_name ?? "") !== ($data['client_name'] ?? "") ||
+            ($invoice->client->email ?? "") !== ($data['client_email'] ?? "")
         );
 
         $clientAddressChanged = (
-            ($invoice->clientAddress->street ?? "") !== ($invoiceData['client_address']['street'] ?? "") ||
-            ($invoice->clientAddress->city ?? "") !== ($invoiceData['client_address']['city'] ?? "") ||
-            ($invoice->clientAddress->postal_code ?? "") !== ($invoiceData['client_address']['postal_code'] ?? "") ||
-            ($invoice->clientAddress->country ?? "") !== ($invoiceData['client_address']['country'] ?? "")
+            ($invoice->clientAddress->street ?? "") !== ($data['client_address']['street'] ?? "") ||
+            ($invoice->clientAddress->city ?? "") !== ($data['client_address']['city'] ?? "") ||
+            ($invoice->clientAddress->postal_code ?? "") !== ($data['client_address']['postal_code'] ?? "") ||
+            ($invoice->clientAddress->country ?? "") !== ($data['client_address']['country'] ?? "")
         );
 
         $senderAddressChanged = (
-            ($invoice->senderAddress->street ?? "") !== ($invoiceData['sender_address']['street'] ?? "") ||
-            ($invoice->senderAddress->city ?? "") !== ($invoiceData['sender_address']['city'] ?? "") ||
-            ($invoice->senderAddress->postal_code ?? "") !== ($invoiceData['sender_address']['postal_code'] ?? "") ||
-            ($invoice->senderAddress->country ?? "") !== ($invoiceData['sender_address']['country'] ?? "")
+            ($invoice->senderAddress->street ?? "") !== ($data['sender_address']['street'] ?? "") ||
+            ($invoice->senderAddress->city ?? "") !== ($data['sender_address']['city'] ?? "") ||
+            ($invoice->senderAddress->postal_code ?? "") !== ($data['sender_address']['postal_code'] ?? "") ||
+            ($invoice->senderAddress->country ?? "") !== ($data['sender_address']['country'] ?? "")
         );
 
         // Clients/Addresses that changed but already exist elsewhere should be referenced.
         $existingClient = 
-            Client::where('full_name', ($invoiceData['client_name'] ?? ""))
-            ->where('email', ($invoiceData['client_email'] ?? ""))
+            Client::where('full_name', ($data['client_name'] ?? ""))
+            ->where('email', ($data['client_email'] ?? ""))
             ->where('id', '!=', $invoice->client_id)
             ->first();
         $updatedClientExists = $existingClient instanceof Client;
 
         // look for an existing address that matches the incoming client address (excluding current)
         $existingClientAddress = 
-            Address::where('street', ($invoiceData['client_address']['street'] ?? ""))
-            ->where('city', ($invoiceData['client_address']['city'] ?? ""))
-            ->where('postal_code', ($invoiceData['client_address']['postal_code'] ?? ""))
-            ->where('country', ($invoiceData['client_address']['country'] ?? ""))
+            Address::where('street', ($data['client_address']['street'] ?? ""))
+            ->where('city', ($data['client_address']['city'] ?? ""))
+            ->where('postal_code', ($data['client_address']['postal_code'] ?? ""))
+            ->where('country', ($data['client_address']['country'] ?? ""))
             ->where('id', '!=', $invoice->client_address_id)
             ->first();
         $updatedClientAddressExists = $existingClientAddress instanceof Address;
 
         // look for an existing address that matches the incoming sender address (excluding current)
         $existingSenderAddress = 
-            Address::where('street', ($invoiceData['sender_address']['street'] ?? ""))
-            ->where('city', ($invoiceData['sender_address']['city'] ?? ""))
-            ->where('postal_code', ($invoiceData['sender_address']['postal_code'] ?? ""))
-            ->where('country', ($invoiceData['sender_address']['country'] ?? ""))
+            Address::where('street', ($data['sender_address']['street'] ?? ""))
+            ->where('city', ($data['sender_address']['city'] ?? ""))
+            ->where('postal_code', ($data['sender_address']['postal_code'] ?? ""))
+            ->where('country', ($data['sender_address']['country'] ?? ""))
             ->where('id', '!=', $invoice->sender_address_id)
             ->first();
         $updatedSenderAddressExists = $existingSenderAddress instanceof Address;
@@ -277,18 +280,18 @@ class InvoiceController extends Controller
 
         if ($createNewClient) {
             $newClient = Client::create([
-                'full_name' => ($invoiceData['client_name'] ?? ""),
-                'email' => ($invoiceData['client_email'] ?? "")
+                'full_name' => ($data['client_name'] ?? ""),
+                'email' => ($data['client_email'] ?? "")
             ]);
             // associate the newly created client to the invoice
             $invoice->client()->associate($newClient);
         }
         if ($createNewClientAddress) {
             $newClientAddress = Address::create([
-                'street' => ($invoiceData['client_address']['street'] ?? ""),
-                'city' => ($invoiceData['client_address']['city'] ?? ""),
-                'postal_code' => ($invoiceData['client_address']['postal_code'] ?? ""),
-                'country' => ($invoiceData['client_address']['country'] ?? "")
+                'street' => ($data['client_address']['street'] ?? ""),
+                'city' => ($data['client_address']['city'] ?? ""),
+                'postal_code' => ($data['client_address']['postal_code'] ?? ""),
+                'country' => ($data['client_address']['country'] ?? "")
             ]);
             // associate as the invoice's client address
             $invoice->clientAddress()->associate($newClientAddress);
@@ -296,10 +299,10 @@ class InvoiceController extends Controller
 
         if ($createNewSenderAddress) {
             $newSenderAddress = Address::create([
-                'street' => ($invoiceData['sender_address']['street'] ?? ""),
-                'city' => ($invoiceData['sender_address']['city'] ?? ""),
-                'postal_code' => ($invoiceData['sender_address']['postal_code'] ?? ""),
-                'country' => ($invoiceData['sender_address']['country'] ?? "")
+                'street' => ($data['sender_address']['street'] ?? ""),
+                'city' => ($data['sender_address']['city'] ?? ""),
+                'postal_code' => ($data['sender_address']['postal_code'] ?? ""),
+                'country' => ($data['sender_address']['country'] ?? "")
             ]);
             // associate the newly created sender address
             $invoice->senderAddress()->associate($newSenderAddress);
@@ -307,21 +310,21 @@ class InvoiceController extends Controller
 
         if ($updateCurrentClient) {
             // debug statements removed
-            $invoice->client->full_name = ($invoiceData['client_name'] ?? "");
-            $invoice->client->email = ($invoiceData['client_email'] ?? "");
+            $invoice->client->full_name = ($data['client_name'] ?? "");
+            $invoice->client->email = ($data['client_email'] ?? "");
         }
         if ($updateCurrentClientAddress) {
-            $invoice->clientAddress->street = ($invoiceData['client_address']['street'] ?? "");
-            $invoice->clientAddress->city = ($invoiceData['client_address']['city'] ?? "");
-            $invoice->clientAddress->postal_code = ($invoiceData['client_address']['postal_code'] ?? "");
-            $invoice->clientAddress->country = ($invoiceData['client_address']['country'] ?? "");
+            $invoice->clientAddress->street = ($data['client_address']['street'] ?? "");
+            $invoice->clientAddress->city = ($data['client_address']['city'] ?? "");
+            $invoice->clientAddress->postal_code = ($data['client_address']['postal_code'] ?? "");
+            $invoice->clientAddress->country = ($data['client_address']['country'] ?? "");
 
         }
         if ($updateCurrentSenderAddress) {
-            $invoice->senderAddress->street = ($invoiceData['sender_address']['street'] ?? "");
-            $invoice->senderAddress->city = ($invoiceData['sender_address']['city'] ?? "");
-            $invoice->senderAddress->postal_code = ($invoiceData['sender_address']['postal_code'] ?? "");
-            $invoice->senderAddress->country = ($invoiceData['sender_address']['country'] ?? "");
+            $invoice->senderAddress->street = ($data['sender_address']['street'] ?? "");
+            $invoice->senderAddress->city = ($data['sender_address']['city'] ?? "");
+            $invoice->senderAddress->postal_code = ($data['sender_address']['postal_code'] ?? "");
+            $invoice->senderAddress->country = ($data['sender_address']['country'] ?? "");
         }
 
         if ($deleteCurrentClient) {
@@ -337,8 +340,8 @@ class InvoiceController extends Controller
         $invoice->lineItems()->delete();
 
         // create line items using new invoice id for foreign key
-        if (!isset($invoiceData['line_items'])) $invoiceData['line_items'] = [];
-        foreach ($invoiceData['line_items'] as $lineItem) {
+        if (!isset($data['line_items'])) $data['line_items'] = [];
+        foreach ($data['line_items'] as $lineItem) {
             // for a post request we are making all new line items, not updating or removing existing ones.
             LineItem::create([
                 'invoice_id' => $invoice->id,

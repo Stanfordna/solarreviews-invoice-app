@@ -32,10 +32,11 @@ export async function fetchInvoice(id) {
 }
 
 export async function addInvoice(invoiceData) {
-    // TBD TODO: get rid of unnecessary fields like total?
+    // TODO - make a useable json object
     try {
         console.log("creating new invoice...");
-        console.log('/api/invoices');
+        console.log('POST /api/invoices');
+        console.log(JSON.stringify(invoiceData));
         const response = await fetch('/api/invoices', {
             method: 'POST',
             headers: {
@@ -44,18 +45,20 @@ export async function addInvoice(invoiceData) {
             body: JSON.stringify(invoiceData),
         });
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}\nmessage: ${response.message}`);
+            return (typeof json === 'object' && 'message' in json) ? [false, json.message] : [false, json];
         }
         const json = await response.json();
-        // Todo: Make a success popup?
-        return (typeof json === 'object' && 'message' in json) ? json.message : json;
+
+        return (typeof json === 'object' && 'message' in json && 'invoice_id' in json) ? 
+            [true, json.message, json.invoice_id] : [true, json];
     } catch (err) {
         console.error('Error creating invoice:', err);
     }
 };
 
 export async function editInvoice(id, invoiceData) {
-    // TBD TODO: get rid of unnecessary fields like total?
+    // TODO - make a useable json object
+
     try {
         console.log("editing invoice...");
         console.log(`/api/invoices/<${id}>`);
@@ -67,11 +70,11 @@ export async function editInvoice(id, invoiceData) {
             body: JSON.stringify(invoiceData),
         });
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}\nmessage: ${response.message}`);
+            return (typeof json === 'object' && 'message' in json) ? [false, json.message] : [false, json];
         }
         const json = await response.json();
-        // Todo: Make a success popup?
-        return (typeof json === 'object' && 'message' in json) ? json.message : json;
+
+        return (typeof json === 'object' && 'message' in json) ? [true, json.message] : [true, json];
     } catch (err) {
         console.error('Error updating invoice:', err);
     }
@@ -87,10 +90,14 @@ export async function deleteInvoice(id) {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}\nmessage: ${response.message}`);
         }
-        const json = await response.json();
-        // Todo: Make a success popup?
-        return (typeof json === 'object' && 'message' in json) ? json.message : json;
+        if (response.status === 204) {
+            return [true, `Invoice ${id} deleted`];
+        }
     } catch (err) {
         console.error('Error deleting invoice:', err);
     }
 };
+
+function removeUnnecessaryFields(invoiceData) { // TODO: implement or delete
+    return;
+}

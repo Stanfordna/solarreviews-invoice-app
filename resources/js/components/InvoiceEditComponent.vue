@@ -4,11 +4,16 @@
     import useEventsBus from '../eventBus.js';
 
     const invoice = ref({});
+    const userMessage = ref('');
+    const isNew = ref(false);
+    const isEdit = ref(false);
     const hideInvoiceEdit = ref(true);
     const { broadcast, events } = useEventsBus();
 
     function initializeNullAttributes() {
-        console.log()
+        console.log("initializing attributes");
+        console.log("Current invoice");
+        console.log(invoice);
         invoice.value.sender_address = invoice.value.sender_address ?? {
             street: ' ',
             city: ' ',
@@ -35,37 +40,85 @@
         invoice.value.issue_date = invoice.value.issue_date ?? '';
         invoice.value.payment_terms = invoice.value.payment_terms ?? '';
         invoice.value.description = invoice.value.description ?? '';
-        invoice.value.item_list = invoice.value.item_list ?? [];
+        invoice.value.line_items = invoice.value.line_items ?? [];
+        if (Array.isArray(invoice.value.line_items)) {
+            console.log("line_items is an array");
+        } else {
+            console.log("line_items is not an array");
+        }
+        console.log(`currernt line items: ${invoice.value.line_items}`)
+        for (let i = 0; i < invoice.value.line_items; i++) {
+            invoice.value.line_items[i]['id'] = i;
+            console(`setting ${line_item.name} to id ${invoice.value.line_items[i]['id']}`);
+            invoice.value.line_items[i]['price_unit_decimal'] = (
+                invoice.value.line_items[i].price_unit_cents * invoice.value.line_items[i].quantity / 100
+            );
+        }
     }
     initializeNullAttributes();
 
+    function addLineItem() {
+        let lineId = 0;
+        if (invoice.value.line_items.at(-1)) {
+            lineId = invoice.value.line_items.at(-1).id + 1;
+        }
+        const lineItem = {
+            id: lineId,
+            name: "",
+            quantity: 0,
+            price_unit_cents: 0,
+            price_unit_decimal: 0,
+        }
+        invoice.value.line_items.push(lineItem);
+    }
+
+    function deleteLineItem(item) {
+        console.log(`line item id: ${item.id}`);
+        let index = invoice.value.line_items.findIndex(line_item => line_item.id === item.id);
+        // If the item is found, remove it from the array
+        console.log(`line item index: ${index}`);
+        if (index !== -1) {
+            console.log(`deleting {$invoice.value.line_items[index].name}`);
+            invoice.value.line_items.splice(index, 1);
+        }
+    }
+
     watch(() => events.NEW_INVOICE, () => {
-        hideInvoiceEdit.value = false;
+        console.log('NEW_INVOICE');
+        isNew.value = true;
+        isEdit.value = false;
+        userMessage.value = '';
         invoice.value = {};
         initializeNullAttributes();
+        hideInvoiceEdit.value = false;
     });
 
-    watch(() => events.EDIT_INVOICE, async (invoiceValue) => {
+    watch(() => events.EDIT_INVOICE, async (invoiceValueRef) => {
+        console.log('EDIT_INVOICE');
         try {
-            invoice.value = invoiceValue;
+            // invoice.value = JSON.parse(JSON.stringify(invoiceValueRef))
+            invoice.value = invoiceValueRef;
             console.log(`editing invoice ${invoice.value.id}`);
         } catch (err) {
             console.error('Failed to load invoice on mount', err);
         }
-        hideInvoiceEdit.value = false;
-        console.log(invoice.value);
+        isNew.value = false;
+        isEdit.value = true;
+        userMessage.value = '';
         initializeNullAttributes();
+        hideInvoiceEdit.value = false;
     });
 </script>
 
 <style scoped src='../../css/invoiceEdit.css'></style>
 
 <template>
-    <tinted-screen :class="{ hidden: hideInvoiceEdit }">
+    <tinted-screen @click.self="hideInvoiceEdit = true;" :class="{ 'hidden': hideInvoiceEdit } ">
         <edit-invoice-background>
             <invoice-form v-if="invoice">
                 <h2 v-if="invoice.id">Edit #{{ invoice.id }}</h2>
                 <h2 v-else>New Invoice</h2>
+                <p v-if="userMessage">{{ userMessage }}</p>
                 <bill-from>
                     <p>Bill From</p>
                     <from-street-label>
@@ -146,7 +199,116 @@
                             v-model="invoice.description"/>
                     </project-description-label>
                 </invoice-details>
+                <line-items-section>
+                    <line-items-header>
+                        <h2>Item List</h2>
+                        <heading-item-name>
+                            Item Name
+                        </heading-item-name>
+                        <heading-item-quantity>
+                            Qty
+                        </heading-item-quantity>
+                        <heading-item-price>
+                            Price
+                        </heading-item-price>
+                        <heading-item-total>
+                            Total
+                        </heading-item-total>
+                    </line-items-header>
+                    <line-item v-for="line_item of invoice.line_items">
+                        <item-name >
+                            <input type="text" v-model="line_item.name"/>
+                        </item-name>
+                        <item-quantity>
+                            <input type="number" step="1" min="0"
+                                v-model="line_item.quantity"/>
+                        </item-quantity>
+                        <item-price>
+                            <input type="number" step="0.01" min="0"
+                                v-model="line_item.price_unit_decimal"
+                                @blur="line_item.price_unit_cents = Math.round(line_item.price_unit_decimal * 100)"/>
+                        </item-price>
+                        <item-total>
+                            {{ (line_item.price_unit_cents * line_item.quantity / 100).toFixed(2) }}
+                        </item-total>
+                        <trash-button @click="deleteLineItem(line_item)">
+                            <img src="/icons/icon-delete.svg"></img>
+                        </trash-button>
+                    </line-item>
+                    <add-line-item-button @click="addLineItem">
+                        <img src="/icons/icon-plus.svg"></img>
+                        <h4>Add New Item</h4>
+                    </add-line-item-button>
+                </line-items-section>
             </invoice-form>
+            <invoice-form-buttons>
+                <new-invoice-buttons :class="{ 'hidden': isEdit }">
+                    <discard-invoice @click="hideInvoiceEdit = true;">
+                        <h5 class='body-text-alt'>
+                            Discard
+                        </h5 class='body-text-alt'>
+                    </discard-invoice>
+                    <save-draft @click="invoice.status = 'draft';
+                                            addInvoice(invoice).then(
+                                                ([success, message, id]) => { 
+                                                if (success) {
+                                                    invoice.id = id;
+                                                    userMessage = message;
+                                                    setTimeout(() => {
+                                                        hideInvoiceEdit = true;
+                                                        broadcast('VIEW_ALL_INVOICES');
+                                                    }, 2500);
+                                                } else {
+                                                    userMessage = message; // error message
+                                                }
+                                            });">
+                        <h5 class='body-text-alt'>
+                            Save as Draft
+                        </h5 class='body-text-alt'>
+                    </save-draft>
+                    <save-n-send @click="invoice.status = 'pending';
+                                            addInvoice(invoice).then(
+                                                ([success, message, id]) => { 
+                                                if (success) {
+                                                    invoice.id = id;
+                                                    userMessage = message;
+                                                    setTimeout(() => {
+                                                        hideInvoiceEdit = true;
+                                                        broadcast('VIEW_ALL_INVOICES');
+                                                    }, 2500);
+                                                } else {
+                                                    userMessage = message; // error message
+                                                }
+                                            });">
+                        <h5 class='body-text-alt'>
+                            Save & Send
+                        </h5 class='body-text-alt'>
+                    </save-n-send>
+                </new-invoice-buttons>
+                <edit-invoice-buttons :class="{ 'hidden': isNew }">
+                    <cancel-changes @click="hideInvoiceEdit = true;">
+                        <h5 class='body-text-alt'>
+                            Cancel
+                        </h5 class='body-text-alt'>
+                    </cancel-changes>
+                    <save-changes @click="editInvoice(invoice).then(
+                                                ([success, message]) => { 
+                                                if (success) {
+                                                    userMessage = message;
+                                                    setTimeout(() => {
+                                                        hideInvoiceEdit = true;
+                                                        broadcast('VIEW_INVOICE', invoice.id);
+                                                    }, 2500);
+                                                } else {
+                                                    userMessage = message; // error message
+                                                }
+                                            });">
+                        <h5 class='body-text-alt'>
+                            Save Changes
+                        </h5 class='body-text-alt'>
+                    </save-changes>
+                </edit-invoice-buttons>
+            </invoice-form-buttons>
         </edit-invoice-background>
     </tinted-screen>
 </template>
