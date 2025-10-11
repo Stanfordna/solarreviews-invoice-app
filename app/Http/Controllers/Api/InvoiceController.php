@@ -161,13 +161,18 @@ class InvoiceController extends Controller
             ], 422); // 201 Created status code
         }
 
+        if (!isset($data['issue_date']) || !isset($data['payment_terms'])) {
+            $dueDate = null;
+        } else {
+            $dueDate = date('Y-m-d', strtotime("{$data['issue_date']} +{$data['payment_terms']} days"));
+        }
+
         // first update values belonging to the invoices table, not foreign relations
         $invoice->issue_date = $data['issue_date'] ?? "";
-        $invoice->due_date = $data['due_date'] ?? "";
+        $invoice->due_date = $dueDate ?? "";
         $invoice->description = $data['description'] ?? "";
         $invoice->payment_terms = $data['payment_terms'] ?? "";
         $invoice->status = $data['status'] ?? "";
-        $invoice->total_cents = $data['total_cents'] ?? "";
 
         // get invoice client and addresses
         $currentClient = $invoice->client;
@@ -225,33 +230,33 @@ class InvoiceController extends Controller
 
         // Clients/Addresses that changed, do not exist elsewhere, and appear on another invoice need to be created.
         $createNewClient = (
-            $currentClient->invoices()->count() > 1 && $clientChanged && !$updatedClientExists
+            isSet($currentClient->invoices) && $currentClient->invoices()->count() > 1 && $clientChanged && !$updatedClientExists
         );
         $createNewClientAddress = (
-            $currentClientAddress->clientInvoices()->count() > 1 && $clientAddressChanged && !$updatedClientAddressExists
+            isSet($currentClientAddress->clientInvoices) && $currentClientAddress->clientInvoices()->count() > 1 && $clientAddressChanged && !$updatedClientAddressExists
         );
         $createNewSenderAddress = (
-            $currentSenderAddress->senderInvoices()->count() > 1 && $senderAddressChanged && !$updatedSenderAddressExists
+            isSet($currentSenderAddress->senderInvoices) && $currentSenderAddress->senderInvoices()->count() > 1 && $senderAddressChanged && !$updatedSenderAddressExists
         );
         //  Clients/Addresses that changed, do not exist elsewhere, but appear on no other invoices need to be updated.
         $updateCurrentClient = (
-            $currentClient->invoices()->count() == 1 && $clientChanged && !$updatedClientExists
+            isSet($currentClient->invoices) && $currentClient->invoices()->count() == 1 && $clientChanged && !$updatedClientExists
         );
         $updateCurrentClientAddress = (
-            $currentClientAddress->clientInvoices()->count() == 1 && $clientAddressChanged && !$updatedClientAddressExists
+            isSet($currentClientAddress->clientInvoices) && $currentClientAddress->clientInvoices()->count() == 1 && $clientAddressChanged && !$updatedClientAddressExists
         );
         $updateCurrentSenderAddress = (
-            $currentSenderAddress->senderInvoices()->count() == 1 && $senderAddressChanged && !$updatedSenderAddressExists
+            isSet($currentSenderAddress->senderInvoices) && $currentSenderAddress->senderInvoices()->count() == 1 && $senderAddressChanged && !$updatedSenderAddressExists
         );
         // Clients/Addresses that no longer appear on an invoice should be removed.
         $deleteCurrentClient = (
-            $currentClient->invoices()->count() == 1 && $updatedClientExists
+            isSet($currentClient->invoices) && $currentClient->invoices()->count() == 1 && $updatedClientExists
         );
         $deleteCurrentClientAddress = (
-            $currentClientAddress->clientInvoices()->count() == 1 && $updatedClientAddressExists
+            isSet($currentClientAddress->clientInvoices) && $currentClientAddress->clientInvoices()->count() == 1 && $updatedClientAddressExists
         );
         $deleteCurrentSenderAddress = (
-            $currentSenderAddress->senderInvoices()->count() == 1 && $updatedSenderAddressExists
+            isSet($currentSenderAddress->senderInvoices) && $currentSenderAddress->senderInvoices()->count() == 1 && $updatedSenderAddressExists
         );
 
         // dump($createNewClient);
@@ -353,6 +358,7 @@ class InvoiceController extends Controller
         // overwrite all line items - just remove and create new ones
         $invoice->lineItems()->delete();
 
+        $invoiceTotal = 0;
         // create line items using new invoice id for foreign key
         if (!isset($data['line_items'])) $data['line_items'] = [];
         foreach ($data['line_items'] as $lineItem) {
@@ -365,7 +371,15 @@ class InvoiceController extends Controller
                 'price_total_cents' => ($lineItem['price_unit_cents'] ?? 0) * ($lineItem['quantity'] ?? 0)
             ]);
             Log::info("Created line item {$lineItem['name']}");
+            
+            if (isset($lineItem['price_unit_cents']) && isset($lineItem['quantity'])) {
+                $lineItem['price_total_cents'] = $lineItem['price_unit_cents'] * $lineItem['quantity'];
+            } else {
+                $lineItem['price_total_cents'] = 0;
+            }
+            $invoiceTotal += $lineItem['price_total_cents'];
         }
+        $invoice->total_cents = $invoiceTotal ?? 0;
 
         $invoice->save();
         // Return the invoice ID in the response
